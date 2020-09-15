@@ -1,3 +1,5 @@
 env/
 *.pyc
 .idea
+config.json
+times.json
