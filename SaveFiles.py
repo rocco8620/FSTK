@@ -17,8 +17,9 @@ class SaveFile(object):
             self.__data = {
                 'window': {
                     'x': 0,
-                    'y': 0
-                },
+                    'y': 0,
+                    'always_on_top': True,
+                }
 
             }
 

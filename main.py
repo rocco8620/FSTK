@@ -1,5 +1,4 @@
 import sys
-import json
 
 
 from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer
@@ -121,9 +120,9 @@ class RowElement(QWidget):
 
     @Slot()
     def edit_ticket_number(self):
-        dialog = AskForTextDialog(window_title='Set redmine ticket number', initial_text=self.ticket_number.text(), length=250)
+        dialog = AskForTextDialog(window_title='Set redmine ticket number', initial_text=self.ticket_number.text().strip('#'), length=250)
         dialog.exec()
-        self.ticket_number.setText(dialog.line.text())
+        self.ticket_number.setText('#' + dialog.line.text().strip('# '))
 
 
     def show_time(self):
@@ -266,8 +265,10 @@ class MainWindow(QMainWindow):
 
         # Menu
         self.menu_bar = self.menuBar()
-        self.file_menu = self.menu_bar.addMenu("Options")
-        self.load_dump_action = self.file_menu.addAction("Always on top")
+        self.options_menu = self.menu_bar.addMenu("Options")
+        self.load_dump_action = self.options_menu.addAction("Always on top")
+
+        self.load_dump_action.triggered.connect(lambda: self.setWindowFlag(Qt.WindowStaysOnTopHint, not bool(self.windowFlags() & Qt.WindowStaysOnTopHint)))
 
         self.menu_bar.installEventFilter(self)
 
@@ -276,7 +277,7 @@ class MainWindow(QMainWindow):
         exit_action.setShortcut("Ctrl+Q")
         exit_action.triggered.connect(self.exit_app)
 
-        self.file_menu.addAction(exit_action)
+        self.options_menu.addAction(exit_action)
         self.widget = widget
         self.setCentralWidget(self.widget)
 
@@ -287,6 +288,8 @@ class MainWindow(QMainWindow):
 
         # sposta la finestra nell'ultima posizone in cui si trovava prima di chiudere
         self.move(self.config['window']['x'], self.config['window']['y'])
+
+        self.setWindowFlag(Qt.WindowStaysOnTopHint, self.config['window']['always_on_top'])
 
         self.show()
 
@@ -305,6 +308,7 @@ class MainWindow(QMainWindow):
         # aggiorna il dizionario delle config
         self.config['window']['x'] = self.x()
         self.config['window']['y'] = self.y()
+        self.config['window']['always_on_top'] = bool(self.windowFlags() & Qt.WindowStaysOnTopHint)
 
         # salva su disco le config
         self.config.save()
