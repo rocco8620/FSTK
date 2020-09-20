@@ -8,6 +8,8 @@ from PySide2.QtWidgets import (QAction, QApplication, QHeaderView, QHBoxLayout, 
                                QVBoxLayout, QWidget, QMenu, QListWidget, QListWidgetItem, QGridLayout,
                                QStyleOptionButton, QStyle, QSizePolicy, QDialog)
 
+from Dialogs import AskForTextDialog, ConfirmDialog
+from Globals import default_window_style
 from SaveFiles import SaveFile
 
 
@@ -41,21 +43,20 @@ def widgets_at(pos):
 
     return widgets
 
-default_window_style =  '''
-        * { color: #4ecca3; }
-        QPushButton { background-color: #444f5d; border: 1px solid #232931 } 
-        QPushButton:hover { background-color: #585c65 }
-    
-    '''
+
 
 class RowElement(QWidget):
 
     __seconds = 0
 
     __saved = False
+    __list = None
+    __list_item = None
 
-    def __init__(self, name, ticket_number, parent=None):
-        super(RowElement, self).__init__(parent)
+    def __init__(self, name, ticket_number, list, list_item):
+        super(RowElement, self).__init__(None)
+        self.__list = list
+        self.__list_item = list_item
 
         self.box = QGridLayout()
 
@@ -109,10 +110,9 @@ class RowElement(QWidget):
         self.del_record.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
         self.del_record.setMaximumWidth(set_min_size_from_content(self.add_time))
         self.del_record.setMinimumWidth(set_min_size_from_content(self.add_time))
+        self.del_record.clicked.connect(lambda: self.del_task())
 
         self.box.addWidget(self.del_record, 0, 3)
-
-
 
         self.box.setColumnStretch(2, 2)
 
@@ -122,7 +122,23 @@ class RowElement(QWidget):
     def edit_ticket_number(self):
         dialog = AskForTextDialog(window_title='Set redmine ticket number', initial_text=self.ticket_number.text().strip('#'), length=250)
         dialog.exec()
-        self.ticket_number.setText('#' + dialog.line.text().strip('# '))
+        n = dialog.line.text().strip('# ')
+
+        try:
+            n = int(n)
+            if 0 < n < 1000000:
+                self.ticket_number.setText('#' + str(n))
+        except ValueError:
+            pass
+
+    @Slot()
+    def del_task(self):
+       dialog = ConfirmDialog(window_title='Confirm task deletion', text='The time has not been reported yet, are you sure?')
+       if dialog.exec():
+           self.__list.takeItem(self.__list.row(self.__list_item))
+
+      #  self.ticket_number.setText('#' + dialog.line.text().strip('# '))
+       pass
 
 
     def show_time(self):
@@ -140,37 +156,6 @@ class RowElement(QWidget):
 
         self.show_time()
 
-class AskForTextDialog(QDialog):
-
-    def __init__(self, window_title, length, initial_text):
-        QDialog.__init__(self)
-
-        self.setWindowTitle(window_title)
-        self.resize(length, 100)
-        #self.setWindowFlag(Qt.FramelessWindowHint)
-        self.setStyleSheet(default_window_style + '''
-            QDialog { background-color: #232931 }
-            QLineEdit { background-color: #444f5d; }
-        ''')
-
-
-        # QWidget Layout
-        self.box = QGridLayout()
-
-        self.line = QLineEdit(initial_text)
-        self.line.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
-        self.box.addWidget(self.line, 0, 0)
-
-        self.ok_button = QPushButton('Ok')
-
-        self.ok_button.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
-        self.ok_button.clicked.connect(lambda: self.accept())
-
-        self.box.addWidget(self.ok_button, 1, 0, alignment=Qt.AlignCenter)
-
-        self.ok_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
-
-        self.setLayout(self.box)
 
 class MainWidget(QWidget):
 
@@ -181,35 +166,9 @@ class MainWidget(QWidget):
         # Create the list
         self.task_list = QListWidget()
 
-        # Add to list a new item (item is simply an entry in your list)
-        item = QListWidgetItem(self.task_list)
-
-        # Instanciate a custom widget
-        row = RowElement('Creazione ticket per Nicolas', '#4752')
-        item.setSizeHint(row.minimumSizeHint())
-
-        # Associate the custom widget to the list entry
-        self.task_list.setItemWidget(item, row)
-
-        # Add to list a new item (item is simply an entry in your list)
-        item = QListWidgetItem(self.task_list)
-
-        # Instanciate a custom widget
-        row = RowElement('Eliminazione dei siti web su trv4', '#5032')
-        item.setSizeHint(row.minimumSizeHint())
-
-        # Associate the custom widget to the list entry
-        self.task_list.setItemWidget(item, row)
-
-        # Add to list a new item (item is simply an entry in your list)
-        item = QListWidgetItem(self.task_list)
-
-        # Instanciate a custom widget
-        row = RowElement('Lettura delle favole della buona notte al virtualizzatore lisp-ve-pve-01, perchè senza non si spegne.', '#6834')
-        item.setSizeHint(row.minimumSizeHint())
-
-        # Associate the custom widget to the list entry
-        self.task_list.setItemWidget(item, row)
+        self.add_task('Creazione ticket per Nicolas', '#9834')
+        self.add_task('Eliminazione dei siti web su trv4', '#5032')
+        self.add_task('Lettura delle favole della buona notte al virtualizzatore lisp-ve-pve-01, perchè senza non si spegne.', '#6834')
 
         self.start_end_day = QPushButton("Start Day")
         self.start_end_day.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
@@ -249,6 +208,16 @@ class MainWidget(QWidget):
         self.timer.start(1000)
 
 
+    def add_task(self, title, ticket=''):
+        # Add to list a new item (item is simply an entry in your list)
+        item = QListWidgetItem(self.task_list)
+
+        # Instanciate a custom widget
+        row = RowElement(title, ticket, self.task_list, item)
+        item.setSizeHint(row.minimumSizeHint())
+
+        # Associate the custom widget to the list entry
+        self.task_list.setItemWidget(item, row)
 
     def count_time(self):
         for s in self.task_list.selectedItems():
