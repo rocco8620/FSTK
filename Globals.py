@@ -4,3 +4,16 @@ default_window_style = '''
         QPushButton:hover { background-color: #585c65 }
 
 '''
+
+default_config = {
+    'window': {
+        'x': 0,
+        'y': 0,
+        'always_on_top': True,
+    },
+    'task_templates': {}
+}
+
+default_times = {
+    'current_tasks': { '0': {'name': 'Task di esempio', 'ticket': '#1234', 'elapsed_time': 4632} }
+}
