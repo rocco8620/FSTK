@@ -1,4 +1,6 @@
 import json
+import logging
+
 
 class FlushFlagDict(dict):
 
@@ -93,7 +95,7 @@ class SaveFile(object):
             # resetta la flag, che potrebbe essere stata modificata durante il caricamento in memoria dei dati
             self.__flushed[0] = True
         except json.decoder.JSONDecodeError as e:
-            print('Exception occurred loading config file ({}): {}. Using default.'.format(self.__file.name, e))
+            logging.warning('Exception occurred loading config file ({}): {}. Using default.'.format(self.__file.name, e))
 
             if default is None:
                 self.__data = {}
@@ -110,9 +112,9 @@ class SaveFile(object):
             self.__file.write(json.dumps(self.__data, indent=4))
             self.__file.flush()
             self.__flushed[0] = True
-            print("Flushing save file ({})...".format(self.__file.name))
+            logging.info("Flushing save file ({})...".format(self.__file.name))
         else:
-            print("Save file ({}) nothing to flush.".format(self.__file.name))
+            logging.info("Save file ({}) nothing to flush.".format(self.__file.name))
 
     def __object_hook(self, e):
         if isinstance(e, dict):

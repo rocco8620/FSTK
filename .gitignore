@@ -3,3 +3,6 @@ env/
 .idea
 config.json
 times.json
+/build
+/dist
+/*.egg-info

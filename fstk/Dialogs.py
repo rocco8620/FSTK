@@ -1,7 +1,8 @@
 from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QDialog, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QLabel, QPlainTextEdit
+from PySide2.QtWidgets import QDialog, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QLabel, QPlainTextEdit, QHBoxLayout
 
-from Globals import default_window_style
+from . import Globals
+from .Globals import default_window_style
 
 
 class AskForTextDialog(QDialog):
@@ -36,7 +37,7 @@ class AskForTextDialog(QDialog):
 
 class ConfirmDialog(QDialog):
 
-    def __init__(self, window_title, text, positive_button='Ok', negative_button='Cancel'):
+    def __init__(self, window_title, text, positive_button='Ok', negative_button='Cancel', html=False):
         QDialog.__init__(self)
 
         self.setWindowTitle(window_title)
@@ -51,8 +52,12 @@ class ConfirmDialog(QDialog):
 
         # QWidget Layout
         self.box = QGridLayout()
+        self.text = QLabel(text)
 
-        self.box.addWidget(QLabel(text), 0, 0, 1, 2)
+        if html:
+            self.text.setTextFormat(Qt.RichText)
+
+        self.box.addWidget(self.text, 0, 0, 1, 2)
 
         self.ok_button = QPushButton(positive_button)
         self.cancel_button = QPushButton(negative_button)
@@ -66,6 +71,39 @@ class ConfirmDialog(QDialog):
 
         self.ok_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
         self.cancel_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
+        self.setLayout(self.box)
+
+class InformationDialog(QDialog):
+
+    def __init__(self, window_title, text, html=False):
+        QDialog.__init__(self)
+
+        self.setWindowTitle(window_title)
+        self.resize(0, 100)
+        # self.setWindowFlag(Qt.FramelessWindowHint)
+        self.setStyleSheet(default_window_style + '''
+            QDialog { background-color: #232931 }
+            QLineEdit { background-color: #444f5d; }
+            QPushButton, QLabel { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
+
+        ''')
+
+        # QWidget Layout
+        self.box = QGridLayout()
+
+        self.text = QLabel(text)
+        if html:
+            self.text.setTextFormat(Qt.RichText)
+
+        self.box.addWidget(QLabel(text), 0, 0)
+
+        self.ok_button = QPushButton('OK')
+        self.ok_button.clicked.connect(lambda: self.accept())
+
+        self.box.addWidget(self.ok_button, 1, 0, alignment=Qt.AlignCenter)
+
+        self.ok_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         self.setLayout(self.box)
 
@@ -113,3 +151,57 @@ class NewTaskDialog(QDialog):
         self.ticket_number.setText('#' + self.ticket_number.text().strip(' \n\t#'))
 
         self.accept()
+
+class HelpDialog(QDialog):
+
+    def __init__(self):
+        QDialog.__init__(self)
+
+        self.setWindowTitle('Help')
+        self.resize(500, 100)
+        #self.setWindowFlag(Qt.FramelessWindowHint)
+        self.setStyleSheet(default_window_style + '''
+            QDialog { background-color: #232931 }
+            QLineEdit { background-color: #444f5d; }
+            QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
+        ''')
+
+        help_text = '''
+            Current FSTK version: <b>{}</b><br>
+            <br>
+            <b>Shortcuts</b><br>
+            <br>
+            <b>Ctrl + Q</b>: Exits the software<br>
+            <br>
+            <b>Tips</b>
+            <ul>
+                <li>To edit the redmine ticket number on an entry, click on it</li>
+            </ul><br>
+            <b>Info</b>
+            <ul>
+                <li>The times are written to disk every minute, to prevent data loss</li>
+                <li>This software features an auto update function</li>
+            </ul><br>
+            <b>Gotchas</b>
+            <ul>
+                <li>If the computer is put on standby for too much time, the time counter may stop counting</li>
+            </ul>
+            
+        '''.format(Globals.version)
+
+        # QWidget Layout
+        self.box = QGridLayout()
+
+        self.text = QLabel(help_text)
+        self.text.setTextFormat(Qt.RichText)
+        self.box.addWidget(self.text, 0, 0)
+
+        self.close_button = QPushButton('Close')
+
+        self.close_button.clicked.connect(lambda: self.accept())
+
+        self.box.addWidget(self.close_button, 1, 0, alignment=Qt.AlignCenter)
+
+        self.close_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
+        self.setLayout(self.box)

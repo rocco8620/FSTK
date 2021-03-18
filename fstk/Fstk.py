@@ -1,28 +1,30 @@
-import sys
+import json
+import logging
+import os
+import threading
 
+import requests
+from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QObject, QThread, QCoreApplication
+from PySide2.QtGui import QFont
+from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QWidget,
+                               QListWidget, QListWidgetItem, QGridLayout,
+                               QSizePolicy, QSizeGrip)
 
-from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal
-from PySide2.QtGui import QPainter, QBrush, QColor, QFont, QIcon, QPixmap, QCursor
-from PySide2.QtWidgets import (QAction, QApplication, QHeaderView, QHBoxLayout, QLabel, QLineEdit,
-                               QMainWindow, QPushButton, QTableWidget, QTableWidgetItem,
-                               QVBoxLayout, QWidget, QMenu, QListWidget, QListWidgetItem, QGridLayout,
-                               QStyleOptionButton, QStyle, QSizePolicy, QDialog, QSizeGrip)
-
-from Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog
-from Globals import default_window_style, default_config, default_times
-from SaveFiles import SaveFile
-
+from .Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog
+from .SaveFiles import SaveFile
+from . import Globals
 
 class QLabelClickable(QLabel):
     clicked = Signal()
+
     def __init__(self, parent=None):
         QLabel.__init__(self, parent)
 
     def mousePressEvent(self, ev):
         self.clicked.emit()
 
-class RowElement(QWidget):
 
+class RowElement(QWidget):
     __seconds = 0
 
     __saved = False
@@ -41,7 +43,7 @@ class RowElement(QWidget):
         self.name.setWordWrap(True)
         self.name.clicked.connect(self.edit_name)
 
-        self.name.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Minimum)
+        self.name.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
 
         self.box.addWidget(self.name, 0, 0)
         self.box.setColumnStretch(0, 7)
@@ -53,9 +55,9 @@ class RowElement(QWidget):
         self.ticket_number.clicked.connect(self.edit_ticket_number)
         self.redmine_elements.addWidget(self.ticket_number)
 
-        self.save_to_redmine = QPushButton('Save')
-        self.save_to_redmine.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
-        self.redmine_elements.addWidget(self.save_to_redmine, alignment=Qt.AlignLeft)
+        # self.save_to_redmine = QPushButton('Save')
+        # self.save_to_redmine.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
+        # self.redmine_elements.addWidget(self.save_to_redmine, alignment=Qt.AlignLeft)
 
         self.redmine_elements.addStretch()
 
@@ -100,8 +102,10 @@ class RowElement(QWidget):
     # Azioni eseguite dall'interfaccia grafica
     @Slot()
     def edit_ticket_number(self):
-        dialog = AskForTextDialog(window_title='Set redmine ticket number', initial_text=self.ticket_number.text().strip('#'), length=250)
-        if not dialog.exec(): # se l'utente non ha cliccato su ok non procediamo
+        dialog = AskForTextDialog(window_title='Set redmine ticket number',
+                                  initial_text=self.ticket_number.text().strip('#'), length=250)
+
+        if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 
         n = dialog.line.text().strip('# ')
@@ -127,11 +131,12 @@ class RowElement(QWidget):
 
     @Slot()
     def del_task(self):
-       dialog = ConfirmDialog(window_title='Confirm task deletion', text='The time has not been reported yet, are you sure?')
-       if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
-           return
+        dialog = ConfirmDialog(window_title='Confirm task deletion',
+                               text='The time has not been reported yet, are you sure?')
+        if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
+            return
 
-       self.__list.takeItem(self.__list.row(self.__list_item))
+        self.__list.takeItem(self.__list.row(self.__list_item))
 
     # Metodi chiamati esternmente
 
@@ -151,7 +156,8 @@ class RowElement(QWidget):
         self.show_time()
 
     def to_dict(self):
-        return { 'name': self.name.text(), 'ticket': self.ticket_number.text().strip('#'), 'elapsed_time': self.__seconds }
+        return {'name': self.name.text(), 'ticket': self.ticket_number.text().strip('#'),
+                'elapsed_time': self.__seconds}
 
     # funzione per la formattazione degli elementi grafici
     @staticmethod
@@ -171,7 +177,7 @@ class MainWidget(QWidget):
         self.task_list = QListWidget()
 
         self.add_task_button = QPushButton("+")
-        self.add_task_button.setFont(QFont('Mono', 17, weight = QFont.Bold))
+        self.add_task_button.setFont(QFont('Mono', 17, weight=QFont.Bold))
         self.add_task_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.add_task_button.clicked.connect(self.create_task)
 
@@ -226,11 +232,35 @@ class MainWidget(QWidget):
         # Associate the custom widget to the list entry
         self.task_list.setItemWidget(item, row)
 
-
     def count_time(self):
         for s in self.task_list.selectedItems():
             self.task_list.itemWidget(s).update_time(+1)
 
+
+
+
+class CheckUpdateWorker(QThread):
+    finished = Signal(tuple) # (Success, Message, New Version)
+
+    def run(self):
+        try:
+           r = requests.get(Globals.update_url)
+           if r.status_code != 200:
+               logging.info('Check for update failed: Expected 200 but got {} status code'.format(r.status_code))
+               self.finished.emit((False, 'Check for update failed: Expected 200 but got {} status code'.format(r.status_code), None))
+               return
+        except Exception as e:
+            raise e
+
+        try:
+            resp = json.loads(r.text)
+        except json.JSONDecodeError as e:
+            logging.info('Check for update failed: Invalid json response: {}'.format(e))
+            self.finished.emit((False, 'Check for update failed: Invalid json response: {}'.format(e), None))
+            return
+
+        logging.info('Latest available version: {}'.format(resp['info']['version'].strip()))
+        self.finished.emit((True, None, resp['info']['version'].strip()))
 
 
 class MainWindow(QMainWindow):
@@ -250,6 +280,8 @@ class MainWindow(QMainWindow):
         # mostro la finestra principale
         self.show()
 
+        # verifico se ci sono aggiornamenti
+        self.search_for_updates(show_errors=False)
 
     def load_ui(self):
         self.setWindowTitle("Fast Switch Time Keeper")
@@ -259,10 +291,16 @@ class MainWindow(QMainWindow):
         # Menu
         menu_bar = self.menuBar()
         options_menu = menu_bar.addMenu("Options")
-        load_dump_action = options_menu.addAction("Always on top")
-        load_dump_action.triggered.connect(lambda: self.setWindowFlag(Qt.WindowStaysOnTopHint, not bool(self.windowFlags() & Qt.WindowStaysOnTopHint)))
+        always_on_top_action = options_menu.addAction("Always on top")
+        always_on_top_action.triggered.connect(lambda: self.setWindowFlag(Qt.WindowStaysOnTopHint, not bool(self.windowFlags() & Qt.WindowStaysOnTopHint)))
 
-        menu_bar.installEventFilter(self)
+        other_menu = menu_bar.addMenu("Other")
+        help_action = other_menu.addAction("Help")
+        help_action.triggered.connect(lambda: HelpDialog().exec())
+
+        search_for_updates_action = other_menu.addAction("Search for updates")
+        search_for_updates_action.triggered.connect(lambda: self.search_for_updates(show_errors=True))
+
 
         # Exit QAction
         exit_action = QAction("Exit", self)
@@ -270,20 +308,20 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.exit_app)
 
         options_menu.addAction(exit_action)
+        menu_bar.installEventFilter(self)
+
         self.setCentralWidget(self.widget)
-
-
 
     def load_config(self):
         # apre i file di salvataggio delle config
-        self.config = SaveFile('config.json', default=default_config)
+        self.config = SaveFile(os.path.join(Globals.config_folder, Globals.config_file_name), default=Globals.default_config)
 
         # sposta la finestra nell'ultima posizone in cui si trovava prima di chiudere
         self.move(self.config['window']['x'], self.config['window']['y'])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, self.config['window']['always_on_top'])
 
     def load_tasks(self):
-        self.times = SaveFile('times.json', default=default_times)
+        self.times = SaveFile(os.path.join(Globals.config_folder, Globals.times_file_name), default=Globals.default_times)
 
         # carico i task dal file di salvataggio all'interfaccia utente
         for t in self.times['current_tasks'].values():
@@ -295,7 +333,7 @@ class MainWindow(QMainWindow):
         self.tasks_autosave_timer.start(60 * 1000)
 
     def flush_tasks_to_savefile(self):
-        print("Autoflushing times to file...")
+        logging.info("Autoflushing times to file...")
         self.times['current_tasks'].clear()
 
         for i in range(self.widget.task_list.count()):
@@ -303,6 +341,49 @@ class MainWindow(QMainWindow):
             self.times['current_tasks'][str(i)] = t.to_dict()
 
         self.times.save()
+
+    def search_for_updates(self, show_errors):
+        def func(result):
+            success, message, new_version = result
+
+            if success:
+                if new_version != Globals.version.strip():
+                    dialog = ConfirmDialog(window_title='New update available',
+                                           text='New version <b>v{}</b> is available, you are currently running version <b>v{}</b>.<br>'
+                                                'The update is completely automatic and takes 1 minute.<br>'
+                                                'Do you wan to update now?'.format(new_version, Globals.version),
+                                           positive_button='Yes',
+                                           negative_button='No',
+                                           html=True)
+
+                    if dialog.exec():  # se l'utente ha cliccato su aggiorna lanciamo l'aggiornamento
+                        InformationDialog('Update search', 'Magic!').exec()
+                else:
+                    if show_errors:
+                        InformationDialog('Update search', 'You are running the lastest version (<b>v{}</b>)'.format(Globals.version.strip())).exec()
+
+            else:
+                if show_errors:
+                    InformationDialog('Update search', message).exec()
+
+        # ----------------------------
+
+        self.update_thread = CheckUpdateWorker()
+        #QCoreApplication.processEvents()
+        self.update_thread.finished.connect(func)
+        self.update_thread.finished.connect(self.update_thread.deleteLater)
+        self.update_thread.start()
+
+        # self.update_thread = QThread()
+        # self.update_worker = CheckUpdateWorker()
+        # self.update_worker.moveToThread(self.update_thread)
+        # # Step 5: Connect signals and slots
+        # self.update_worker.finished.connect(func)
+        # self.update_worker.finished.connect(self.update_worker.deleteLater)
+        # self.update_thread.finished.connect(self.update_thread.deleteLater)
+        #
+        # self.update_thread.start()
+
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.Type.MouseMove and event.buttons() & Qt.LeftButton:
@@ -331,25 +412,3 @@ class MainWindow(QMainWindow):
         QApplication.quit()
 
 
-if __name__ == "__main__":
-    # Qt Application
-    app = QApplication(sys.argv)
-    app.setStyleSheet(default_window_style + '''
-        QMenuBar, QMenuItem { background-color: #444f5d } 
-        
-        QListWidget { background-color: #232931; } 
-        QListWidget::item, QSizeGrip { background-color: #353d48; } 
-        QListWidget::item:selected { background-color: #5d54a4; } 
-        
-        
-        
-    ''')
-
-    # https://colorhunt.co/palette/117601
-    # QWidget
-    main_widget = MainWidget()
-    # QMainWindow using QWidget as central widget
-    window = MainWindow(main_widget)
-
-    # Execute application
-    sys.exit(app.exec_())
