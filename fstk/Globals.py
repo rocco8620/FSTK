@@ -1,3 +1,5 @@
+from . import __version__
+
 default_window_style = '''
         * { color: #4ecca3; }
         QPushButton { background-color: #444f5d; border: 1px solid #232931 } 
@@ -26,7 +28,7 @@ config_folder = '~/.config/fstk'
 config_file_name = 'config.json'
 times_file_name = 'times.json'
 
-update_url = 'https://pypi.org/pypi/goodtraceback/json'
+package_name = 'fstk'
+update_url = 'https://pypi.org/pypi/{}/json'.format(package_name)
 
-from . import __version__
 version = __version__

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 
 import requests
 from PySide2 import QtGui
@@ -13,6 +14,7 @@ from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMain
 from .Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog
 from .SaveFiles import SaveFile
 from . import Globals, Utils
+from . import Updater
 
 
 class QLabelClickable(QLabel):
@@ -326,7 +328,6 @@ class MainWindow(QMainWindow):
     def load_config(self):
         # apre i file di salvataggio delle config
         self.config = SaveFile(os.path.join(Globals.config_folder, Globals.config_file_name), default=Globals.default_config)
-        #print(self.config)
         # sposta la finestra nell'ultima posizone in cui si trovava prima di chiudere
         self.move(self.config['window']['x'], self.config['window']['y'])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, self.config['window']['always_on_top'])
@@ -355,9 +356,9 @@ class MainWindow(QMainWindow):
 
     def search_for_updates(self, show_errors):
         def func(result):
-            success, message, new_version = result
+            success_check, message_check, new_version = result
 
-            if success:
+            if success_check:
                 if new_version != Globals.version.strip():
                     dialog = ConfirmDialog(window_title='New update available',
                                            text='New version <b>v{}</b> is available, you are currently running version <b>v{}</b>.<br>'
@@ -368,14 +369,21 @@ class MainWindow(QMainWindow):
                                            html=True)
 
                     if dialog.exec():  # se l'utente ha cliccato su aggiorna lanciamo l'aggiornamento
-                        InformationDialog('Update search', 'Magic!').exec()
+                        success_install, message_install = Updater.install_package(Globals.package_name)
+
+                        if success_install:
+                            InformationDialog('Software update', 'Update completed! FSTK will now restart').exec()
+                            self.closeEvent(None)
+                            Updater.restart()
+                        else:
+                            InformationDialog('Software update', 'Update failed: {}'.format(message_install)).exec()
                 else:
                     if show_errors:
-                        InformationDialog('Update search', 'You are running the lastest version (<b>v{}</b>)'.format(Globals.version.strip())).exec()
+                        InformationDialog('Software update', 'You are running the lastest version (<b>v{}</b>)'.format(Globals.version.strip())).exec()
 
             else:
                 if show_errors:
-                    InformationDialog('Update search', message).exec()
+                    InformationDialog('Software update', message_check).exec()
 
         # ----------------------------
 
@@ -400,11 +408,10 @@ class MainWindow(QMainWindow):
             self.oldPos = event.globalPos()
         elif event.type() == QEvent.Type.MouseButtonPress:
             self.oldPos = event.globalPos()
-            pass
 
         return super(MainWindow, self).eventFilter(source, event)
 
-    def closeEvent(self, event):
+    def closeEvent(self, _):
         # aggiorna il dizionario delle config
         self.config['window']['x'] = self.x()
         self.config['window']['y'] = self.y()

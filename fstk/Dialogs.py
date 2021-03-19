@@ -182,6 +182,7 @@ class HelpDialog(QDialog):
             <b>Tips</b>
             <ul>
                 <li>To edit the redmine ticket number on an entry, click on it</li>
+                <li>To hide the window, click it's taskbar element</li>
             </ul><br>
             <b>Info</b>
             <ul>
@@ -192,7 +193,6 @@ class HelpDialog(QDialog):
             <ul>
                 <li>If the computer is put on standby for too much time, the time counter may stop counting</li>
             </ul>
-            
         '''.format(Globals.version)
 
         # QWidget Layout
