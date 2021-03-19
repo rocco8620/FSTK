@@ -144,3 +144,5 @@ class SaveFile(object):
         self.__data[key] = value
         self.__flushed[0] = False
 
+    def __repr__(self):
+        return repr(self.__data)

@@ -1,7 +1,8 @@
+from PySide2 import QtGui
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QDialog, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QLabel, QPlainTextEdit, QHBoxLayout
 
-from . import Globals
+from . import Globals, Utils
 from .Globals import default_window_style
 
 
@@ -12,12 +13,13 @@ class AskForTextDialog(QDialog):
 
         self.setWindowTitle(window_title)
         self.resize(length, 100)
-        #self.setWindowFlag(Qt.FramelessWindowHint)
         self.setStyleSheet(default_window_style + '''
             QDialog { background-color: #232931 }
             QLineEdit { background-color: #444f5d; }
             QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
         ''')
+
+        self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
 
         # QWidget Layout
         self.box = QGridLayout()
@@ -42,13 +44,14 @@ class ConfirmDialog(QDialog):
 
         self.setWindowTitle(window_title)
         self.resize(0, 100)
-        #self.setWindowFlag(Qt.FramelessWindowHint)
         self.setStyleSheet(default_window_style + '''
             QDialog { background-color: #232931 }
             QLineEdit { background-color: #444f5d; }
             QPushButton, QLabel { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
             
         ''')
+
+        self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
 
         # QWidget Layout
         self.box = QGridLayout()
@@ -81,13 +84,14 @@ class InformationDialog(QDialog):
 
         self.setWindowTitle(window_title)
         self.resize(0, 100)
-        # self.setWindowFlag(Qt.FramelessWindowHint)
         self.setStyleSheet(default_window_style + '''
             QDialog { background-color: #232931 }
             QLineEdit { background-color: #444f5d; }
             QPushButton, QLabel { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
 
         ''')
+
+        self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
 
         # QWidget Layout
         self.box = QGridLayout()
@@ -114,12 +118,13 @@ class NewTaskDialog(QDialog):
 
         self.setWindowTitle('Add new task')
         self.resize(500, 150)
-        #self.setWindowFlag(Qt.FramelessWindowHint)
         self.setStyleSheet(default_window_style + '''
             QDialog { background-color: #232931 }
             QPlainTextEdit, QLineEdit { background-color: #444f5d; }
             QPushButton, QLabel { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
         ''')
+
+        self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
 
         # QWidget Layout
         self.box = QGridLayout()
@@ -159,12 +164,13 @@ class HelpDialog(QDialog):
 
         self.setWindowTitle('Help')
         self.resize(500, 100)
-        #self.setWindowFlag(Qt.FramelessWindowHint)
         self.setStyleSheet(default_window_style + '''
             QDialog { background-color: #232931 }
             QLineEdit { background-color: #444f5d; }
             QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
         ''')
+
+        self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
 
         help_text = '''
             Current FSTK version: <b>{}</b><br>

@@ -1,10 +1,10 @@
 import json
 import logging
 import os
-import threading
 
 import requests
-from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QObject, QThread, QCoreApplication
+from PySide2 import QtGui
+from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QThread
 from PySide2.QtGui import QFont
 from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QWidget,
                                QListWidget, QListWidgetItem, QGridLayout,
@@ -12,7 +12,8 @@ from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMain
 
 from .Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog
 from .SaveFiles import SaveFile
-from . import Globals
+from . import Globals, Utils
+
 
 class QLabelClickable(QLabel):
     clicked = Signal()
@@ -264,6 +265,15 @@ class CheckUpdateWorker(QThread):
 
 
 class MainWindow(QMainWindow):
+    # dizionario che contiene le informaizoni riguardo ai tempi tracciati
+    times = None
+    # dizionario che contiene le configurazioni attuali
+    config = None
+    # timer che gestisce l'autosave
+    tasks_autosave_timer = None
+    # thread che cerca aggiornamenti per il software in background
+    update_thread = None
+
     def __init__(self, widget):
         QMainWindow.__init__(self)
 
@@ -285,14 +295,15 @@ class MainWindow(QMainWindow):
 
     def load_ui(self):
         self.setWindowTitle("Fast Switch Time Keeper")
+        self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
         self.setWindowFlag(Qt.FramelessWindowHint)
         self.resize(460, 520)
 
         # Menu
         menu_bar = self.menuBar()
         options_menu = menu_bar.addMenu("Options")
-        always_on_top_action = options_menu.addAction("Always on top")
-        always_on_top_action.triggered.connect(lambda: self.setWindowFlag(Qt.WindowStaysOnTopHint, not bool(self.windowFlags() & Qt.WindowStaysOnTopHint)))
+        # always_on_top_action = options_menu.addAction("Always on top")
+        # always_on_top_action.triggered.connect(self.toggle_window_stay_on_top)
 
         other_menu = menu_bar.addMenu("Other")
         help_action = other_menu.addAction("Help")
@@ -315,7 +326,7 @@ class MainWindow(QMainWindow):
     def load_config(self):
         # apre i file di salvataggio delle config
         self.config = SaveFile(os.path.join(Globals.config_folder, Globals.config_file_name), default=Globals.default_config)
-
+        #print(self.config)
         # sposta la finestra nell'ultima posizone in cui si trovava prima di chiudere
         self.move(self.config['window']['x'], self.config['window']['y'])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, self.config['window']['always_on_top'])
@@ -374,16 +385,13 @@ class MainWindow(QMainWindow):
         self.update_thread.finished.connect(self.update_thread.deleteLater)
         self.update_thread.start()
 
-        # self.update_thread = QThread()
-        # self.update_worker = CheckUpdateWorker()
-        # self.update_worker.moveToThread(self.update_thread)
-        # # Step 5: Connect signals and slots
-        # self.update_worker.finished.connect(func)
-        # self.update_worker.finished.connect(self.update_worker.deleteLater)
-        # self.update_thread.finished.connect(self.update_thread.deleteLater)
-        #
-        # self.update_thread.start()
-
+    # @Slot()
+    # def toggle_window_stay_on_top(self):
+    #     print(int(self.windowFlags()))
+    #     self.setWindowFlag(Qt.WindowStaysOnTopHint, not bool(self.windowFlags() & Qt.WindowStaysOnTopHint))
+    #     self.show()
+    #     self.activateWindow()
+    #     print('Toggled: ', not bool(self.windowFlags() & Qt.WindowStaysOnTopHint))
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.Type.MouseMove and event.buttons() & Qt.LeftButton:
@@ -400,7 +408,8 @@ class MainWindow(QMainWindow):
         # aggiorna il dizionario delle config
         self.config['window']['x'] = self.x()
         self.config['window']['y'] = self.y()
-        self.config['window']['always_on_top'] = bool(self.windowFlags() & Qt.WindowStaysOnTopHint)
+        # self.config['window']['always_on_top'] = bool(self.windowFlags() & Qt.WindowStaysOnTopHint)
+        self.config['window']['always_on_top'] = True
 
         # salva su disco le config e tempi/task
         self.config.save()

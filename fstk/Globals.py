@@ -18,7 +18,7 @@ default_config = {
 }
 
 default_times = {
-    'current_tasks': { '0': {'name': 'Task di esempio', 'ticket': '#1234', 'elapsed_time': 4632} },
+    'current_tasks': { '0': {'name': 'Task di esempio', 'ticket': '1234', 'elapsed_time': 4632} },
     'version': 1
 }
 
