@@ -135,7 +135,8 @@ class RowElement(QWidget):
     @Slot()
     def del_task(self):
         dialog = ConfirmDialog(window_title='Confirm task deletion',
-                               text='The time has not been reported yet, are you sure?')
+        #                       text='The time has not been reported yet, are you sure?')
+                               text='The time will be lost, are you sure?')
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 
@@ -252,8 +253,14 @@ class CheckUpdateWorker(QThread):
                logging.info('Check for update failed: Expected 200 but got {} status code'.format(r.status_code))
                self.finished.emit((False, 'Check for update failed: Expected 200 but got {} status code'.format(r.status_code), None))
                return
+        except requests.exceptions.ConnectionError as e:
+            logging.info('Check for update failed: Connection failed connection to pypi.org api: {}'.format(e))
+            self.finished.emit((False, 'Check for update failed: Connection failed connection to pypi.org api: {}'.format(e), None))
+            return
         except Exception as e:
-            raise e
+            logging.info('Check for update failed: Unknow error occurred: {}'.format(e))
+            self.finished.emit((False, 'Check for update failed: Unknow error occurred: {}'.format(e), None))
+            return
 
         try:
             resp = json.loads(r.text)
@@ -399,7 +406,7 @@ class MainWindow(QMainWindow):
                             InformationDialog('Software update', 'Update failed: {}'.format(message_install)).exec()
                 else:
                     if show_errors:
-                        InformationDialog('Software update', 'You are running the lastest version (<b>v{}</b>)'.format(Globals.version.strip())).exec()
+                        InformationDialog('Software update', 'You are running the latest version (<b>v{}</b>)'.format(Globals.version.strip())).exec()
 
             else:
                 if show_errors:

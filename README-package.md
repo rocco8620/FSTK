@@ -3,9 +3,9 @@
 *Fast Switch Time Keeper* - A Time Keeping desktop widget focused on tracking the time spent on (possibly interleaved) daily tasks.
 Written in Python and PyQT5/PySide2
 
-## Installaton, configuration and use
+## Installation, configuration and use
 
-1\. Create a virtualenv
+1\. Create a virtual environ
 
 ~~~
 virtualenv env -p python3
@@ -18,7 +18,8 @@ source env/bin/activate
 pip install fstk
 ~~~
 
-3\. First start the app with the following command, **for the following runs a finder shortcut will be available** 
+3\. First start the app with the following command, this will install a finder shortcut.
+After the first run the software can be launched from finder
 
 ~~~
 python -m fstk

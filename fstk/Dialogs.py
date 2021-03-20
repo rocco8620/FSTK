@@ -1,6 +1,7 @@
 from PySide2 import QtGui
 from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QDialog, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QLabel, QPlainTextEdit, QHBoxLayout
+from PySide2.QtWidgets import QDialog, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QLabel, QPlainTextEdit, \
+    QHBoxLayout, QTextEdit
 
 from . import Globals, Utils
 from .Globals import default_window_style
@@ -79,7 +80,7 @@ class ConfirmDialog(QDialog):
 
 class InformationDialog(QDialog):
 
-    def __init__(self, window_title, text, html=False):
+    def __init__(self, window_title, text, html=False, max_width=700):
         QDialog.__init__(self)
 
         self.setWindowTitle(window_title)
@@ -97,10 +98,12 @@ class InformationDialog(QDialog):
         self.box = QGridLayout()
 
         self.text = QLabel(text)
+        self.text.setMaximumWidth(max_width)
+        self.text.setWordWrap(True)
         if html:
             self.text.setTextFormat(Qt.RichText)
 
-        self.box.addWidget(QLabel(text), 0, 0)
+        self.box.addWidget(self.text, 0, 0)
 
         self.ok_button = QPushButton('OK')
         self.ok_button.clicked.connect(lambda: self.accept())
@@ -110,6 +113,7 @@ class InformationDialog(QDialog):
         self.ok_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         self.setLayout(self.box)
+        self.adjustSize()
 
 class NewTaskDialog(QDialog):
 
@@ -163,7 +167,6 @@ class HelpDialog(QDialog):
         QDialog.__init__(self)
 
         self.setWindowTitle('Help')
-        self.resize(500, 100)
         self.setStyleSheet(default_window_style + '''
             QDialog { background-color: #232931 }
             QLineEdit { background-color: #444f5d; }
@@ -211,6 +214,7 @@ class HelpDialog(QDialog):
         self.close_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         self.setLayout(self.box)
+        self.adjustSize()
 
 
 class ChangelogDialog(QDialog):
@@ -219,11 +223,12 @@ class ChangelogDialog(QDialog):
         QDialog.__init__(self)
 
         self.setWindowTitle('Changelog')
-        self.resize(500, 100)
+        self.resize(600, 400)
         self.setStyleSheet(default_window_style + '''
             QDialog { background-color: #232931 }
             QLineEdit { background-color: #444f5d; }
             QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
+            QTextEdit { background-color: #444f5d }
         ''')
 
         self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
@@ -231,7 +236,14 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
-            <b>Release 0.1.0</b><br>
+            <b>Release 0.1.1</b>
+            <ul>
+                <li>Fixed error handling on update search if internet was not available</li>
+                <li>Fixed long text formatting on message boxes</li>
+                <li>Improved changelog window</li>
+                <li>Minor fixes</li>
+            </ul><br>
+            <b>Release 0.1.0</b>
             <ul>
                 <li>First release, basic time counting and task management</li>
                 <li>Auto update function</li>
@@ -242,8 +254,8 @@ class ChangelogDialog(QDialog):
         # QWidget Layout
         self.box = QGridLayout()
 
-        self.text = QLabel(changelog_text)
-        self.text.setTextFormat(Qt.RichText)
+        self.text = QTextEdit(changelog_text)
+        self.text.setReadOnly(True)
         self.box.addWidget(self.text, 0, 0)
 
         self.close_button = QPushButton('Close')
