@@ -292,6 +292,8 @@ class MainWindow(QMainWindow):
         # mostro la finestra principale
         self.show()
 
+        self.install_desktop_shortcut()
+
         # verifico se ci sono aggiornamenti
         self.search_for_updates(show_errors=False)
 
@@ -306,6 +308,9 @@ class MainWindow(QMainWindow):
         options_menu = menu_bar.addMenu("Options")
         # always_on_top_action = options_menu.addAction("Always on top")
         # always_on_top_action.triggered.connect(self.toggle_window_stay_on_top)
+
+        remove_deskto_shortcut_action = options_menu.addAction("Remove finder shortcut")
+        remove_deskto_shortcut_action.triggered.connect(self.remove_deskto_shortcut)
 
         other_menu = menu_bar.addMenu("Other")
         help_action = other_menu.addAction("Help")
@@ -392,6 +397,40 @@ class MainWindow(QMainWindow):
         self.update_thread.finished.connect(func)
         self.update_thread.finished.connect(self.update_thread.deleteLater)
         self.update_thread.start()
+
+    def install_desktop_shortcut(self):
+        desktop_file_path = os.path.join(Globals.desktop_folder, Globals.desktop_file_name)
+
+        if not os.path.isfile(desktop_file_path):
+            logging.debug('The desktop file does not exists, creating it now')
+            with open(Utils.get_local_file_path(Globals.desktop_file_name), 'r') as o:
+                desktop_file_content = o.read()
+
+            desktop_file_content = desktop_file_content.format(
+                                    Utils.get_local_file_path('icon.png'), # icona del software
+                                    '"{}" -m fstk'.format(sys.executable)
+                                   )
+
+            with open(desktop_file_path, 'w') as o:
+                o.write(desktop_file_content)
+
+            logging.debug('Desktop file installed in {}'.format(desktop_file_path))
+
+        else:
+            logging.debug('The desktop file is already existing')
+
+    def remove_deskto_shortcut(self):
+        desktop_file_path = os.path.join(Globals.desktop_folder, Globals.desktop_file_name)
+        logging.debug('Removing desktop shortcut')
+
+        try:
+            os.remove(desktop_file_path)
+            InformationDialog('Desktop Shortcut', 'Desktop shortcut removed successfully').exec()
+            logging.debug('Desktop shortcut remove successfully')
+        except FileNotFoundError:
+            logging.debug('Desktop desktop file not found while trying to remove it')
+            InformationDialog('Desktop Shortcut', 'Desktop shortcut not present.').exec()
+
 
     # @Slot()
     # def toggle_window_stay_on_top(self):

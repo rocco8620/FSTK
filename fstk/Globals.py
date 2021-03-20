@@ -29,6 +29,9 @@ config_file_name = 'config.json'
 times_file_name = 'times.json'
 lock_file_name = 'lock.pid'
 
+desktop_folder = '~/.local/share/applications'
+desktop_file_name = 'fast-switch-time-keeper.desktop'
+
 package_name = 'fstk'
 update_url = 'https://pypi.org/pypi/{}/json'.format(package_name)
 

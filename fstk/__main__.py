@@ -11,6 +11,7 @@ from . import Globals
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s][%(levelname)s] %(message)s', filename='')
 
 Globals.config_folder = os.path.expanduser(Globals.config_folder)
+Globals.desktop_folder = os.path.expanduser(Globals.desktop_folder)
 
 if not os.path.isdir(Globals.config_folder):
     try:

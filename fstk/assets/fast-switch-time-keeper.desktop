@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=FSTK
+Icon={}
+Exec={}
+Comment=Fast Switch Time Keeper
+Categories=FSTK;Fast;Switch;Time;Keeper
+Terminal=false
