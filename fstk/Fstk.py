@@ -423,8 +423,14 @@ class MainWindow(QMainWindow):
 
         self.flush_tasks_to_savefile()
 
+        logging.debug('Cleaning lock file for the current execution')
+        # rilascio il file di lock per questa esecuzione
+        lock_file_path = os.path.join(Globals.config_folder, Globals.lock_file_name)
+        os.remove(lock_file_path)
+
     @Slot()
     def exit_app(self, checked):
+        self.closeEvent(None)
         QApplication.quit()
 
 

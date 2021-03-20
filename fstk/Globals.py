@@ -27,6 +27,7 @@ default_times = {
 config_folder = '~/.config/fstk'
 config_file_name = 'config.json'
 times_file_name = 'times.json'
+lock_file_name = 'lock.pid'
 
 package_name = 'fstk'
 update_url = 'https://pypi.org/pypi/{}/json'.format(package_name)
