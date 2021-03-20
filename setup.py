@@ -22,18 +22,21 @@ setuptools.setup(
     name="fstk",
     version=get_version('fstk/__init__.py'),
     author="Meow",
-    #author_email="",
     description="Fast Switch Time Keeper",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    #url="https://gitlab.linkspirit.it/linkspirit/kaomi-deployer.git",
     packages=setuptools.find_packages(),
+    package_data = {
+        '': ['assets/*'],
+    },
+
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent",
+        "Operating System :: POSIX :: Linux",
     ],
     install_requires=[
         'PySide2>=5.10',
+        'requests>=2'
     ],
     python_requires='>=3',
 )

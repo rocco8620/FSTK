@@ -7,3 +7,4 @@ times.json
 /dist
 /*.egg-info
 TODO*
+credentials.sh

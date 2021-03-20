@@ -18,7 +18,7 @@ source env/bin/activate
 pip install fstk
 ~~~
 
-3\. To start the app search for `FSTK` on your app finder or run
+3\. First start the app with the following command, **for the following runs a finder shortcut will be available** 
 
 ~~~
 python -m fstk
