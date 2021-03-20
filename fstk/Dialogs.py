@@ -211,3 +211,47 @@ class HelpDialog(QDialog):
         self.close_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         self.setLayout(self.box)
+
+
+class ChangelogDialog(QDialog):
+
+    def __init__(self):
+        QDialog.__init__(self)
+
+        self.setWindowTitle('Changelog')
+        self.resize(500, 100)
+        self.setStyleSheet(default_window_style + '''
+            QDialog { background-color: #232931 }
+            QLineEdit { background-color: #444f5d; }
+            QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
+        ''')
+
+        self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
+
+        changelog_text = '''
+            Current FSTK version: <b>{}</b><br>
+            <br>
+            <b>Release 0.1.0</b><br>
+            <ul>
+                <li>First release, basic time counting and task management</li>
+                <li>Auto update function</li>
+                <li>Desktop shortcut for easy start</li>
+            </ul>
+        '''.format(Globals.version)
+
+        # QWidget Layout
+        self.box = QGridLayout()
+
+        self.text = QLabel(changelog_text)
+        self.text.setTextFormat(Qt.RichText)
+        self.box.addWidget(self.text, 0, 0)
+
+        self.close_button = QPushButton('Close')
+
+        self.close_button.clicked.connect(lambda: self.accept())
+
+        self.box.addWidget(self.close_button, 1, 0, alignment=Qt.AlignCenter)
+
+        self.close_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
+        self.setLayout(self.box)

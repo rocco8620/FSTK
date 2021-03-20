@@ -16,6 +16,7 @@ default_config = {
     'task_templates': {
 
     },
+    'first_run': True,
     'version': 1
 }
 

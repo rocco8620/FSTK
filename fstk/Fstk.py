@@ -11,7 +11,7 @@ from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMain
                                QListWidget, QListWidgetItem, QGridLayout,
                                QSizePolicy, QSizeGrip)
 
-from .Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog
+from .Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog
 from .SaveFiles import SaveFile
 from . import Globals, Utils
 from . import Updater
@@ -292,10 +292,18 @@ class MainWindow(QMainWindow):
         # mostro la finestra principale
         self.show()
 
+        # installo lo shortcut per il desktop
         self.install_desktop_shortcut()
+
+        # Se è la prima esecuzione, mostro la finestra dei changelog
+        self.show_changelog()
 
         # verifico se ci sono aggiornamenti
         self.search_for_updates(show_errors=False)
+
+        # questa deve essere l'ultima operazione
+        # imposto la prima esecuzione a falso
+        self.config['first_run'] = False
 
     def load_ui(self):
         self.setWindowTitle("Fast Switch Time Keeper")
@@ -315,6 +323,9 @@ class MainWindow(QMainWindow):
         other_menu = menu_bar.addMenu("Other")
         help_action = other_menu.addAction("Help")
         help_action.triggered.connect(lambda: HelpDialog().exec())
+
+        help_action = other_menu.addAction("Show changelog")
+        help_action.triggered.connect(lambda: ChangelogDialog().exec())
 
         search_for_updates_action = other_menu.addAction("Search for updates")
         search_for_updates_action.triggered.connect(lambda: self.search_for_updates(show_errors=True))
@@ -378,7 +389,11 @@ class MainWindow(QMainWindow):
 
                         if success_install:
                             InformationDialog('Software update', 'Update completed! FSTK will now restart').exec()
+                            # imposto la flag first run per mostrare il changelog al riavvio
+                            self.config['first_run'] = True
+                            # salvo lo stato dei contatori e delle configurazioni
                             self.closeEvent(None)
+                            # riavvio il processo
                             Updater.restart()
                         else:
                             InformationDialog('Software update', 'Update failed: {}'.format(message_install)).exec()
@@ -431,6 +446,9 @@ class MainWindow(QMainWindow):
             logging.debug('Desktop desktop file not found while trying to remove it')
             InformationDialog('Desktop Shortcut', 'Desktop shortcut not present.').exec()
 
+    def show_changelog(self):
+        if self.config['first_run']:
+            ChangelogDialog().exec()
 
     # @Slot()
     # def toggle_window_stay_on_top(self):
