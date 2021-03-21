@@ -11,7 +11,8 @@ from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMain
                                QListWidget, QListWidgetItem, QGridLayout,
                                QSizePolicy)
 
-from .Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog
+from .Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog, \
+    StatisticsDialog
 from .SaveFiles import SaveFile
 from . import Globals, Utils
 from . import Updater
@@ -183,8 +184,7 @@ class RowElement(QWidget):
         return self.__seconds
 
     def to_dict(self):
-        return {'name': self.name.text(), 'ticket': self.ticket_number.text().strip('#'),
-                'elapsed_time': self.__seconds}
+        return {'name': self.name.text(), 'ticket': self.ticket_number.text().strip('#'), 'elapsed_time': self.__seconds}
 
     # funzione per la formattazione degli elementi grafici
     @staticmethod
@@ -216,7 +216,6 @@ class MainWidget(QWidget):
         self.setContentsMargins(0, 0, 0, 0)
 
         # prepara il timer per contare il tempo
-
         self.task_timer = QTimer()
         self.task_timer.setTimerType(Qt.PreciseTimer)
         self.task_timer.timeout.connect(self.count_time)
@@ -232,6 +231,7 @@ class MainWidget(QWidget):
         ticket_number = dialog.ticket_number.text()
 
         self.insert_task_in_list(name, ticket_number)
+        self.main_window.config['stats']['total_created_tasks'] += 1
 
     def insert_task_in_list(self, name, ticket_number='', elapsed_time=0):
         # Add to list a new item (item is simply an entry in your list)
@@ -290,7 +290,7 @@ class CheckUpdateWorker(QThread):
 
 class MainWindow(QMainWindow):
     # dizionario che contiene le informaizoni riguardo ai tempi tracciati
-    times = None
+    tasks = None
     # dizionario che contiene le configurazioni attuali
     config = None
     # timer che gestisce l'autosave
@@ -302,6 +302,7 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         self.widget = widget
+        self.widget.main_window = self
         self.load_ui()
 
         self.oldPos = self.pos()
@@ -318,7 +319,7 @@ class MainWindow(QMainWindow):
         self.install_desktop_shortcut()
 
         # Se è la prima esecuzione, mostro la finestra dei changelog
-        self.show_changelog()
+        self.show_changelog_if_needed()
 
         # verifico se ci sono aggiornamenti
         self.search_for_updates(show_errors=False)
@@ -341,6 +342,10 @@ class MainWindow(QMainWindow):
 
         remove_desktop_shortcut_action = options_menu.addAction("Remove finder shortcut")
         remove_desktop_shortcut_action.triggered.connect(self.remove_desktop_shortcut)
+
+        statistics_menu = menu_bar.addMenu("Statistics")
+        usage_action = statistics_menu.addAction("Usage")
+        usage_action.triggered.connect(lambda: StatisticsDialog(self.config['stats']['total_created_tasks']).exec())
 
         other_menu = menu_bar.addMenu("Other")
         help_action = other_menu.addAction("Help")
@@ -377,16 +382,17 @@ class MainWindow(QMainWindow):
 
     def load_config(self):
         # apre i file di salvataggio delle config
-        self.config = SaveFile(os.path.join(Globals.config_folder, Globals.config_file_name), default=Globals.default_config)
+        self.config = SaveFile(os.path.join(Globals.config_folder, Globals.config_file_name), filetype='config', default=Globals.default_config)
         # sposta la finestra nell'ultima posizone in cui si trovava prima di chiudere
         self.move(self.config['window']['x'], self.config['window']['y'])
+        self.resize(self.config['window']['w'], self.config['window']['h'])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, self.config['window']['always_on_top'])
 
     def load_tasks(self):
-        self.times = SaveFile(os.path.join(Globals.config_folder, Globals.times_file_name), default=Globals.default_times)
+        self.tasks = SaveFile(os.path.join(Globals.config_folder, Globals.tasks_file_name), filetype='tasks', default=Globals.default_tasks)
 
         # carico i task dal file di salvataggio all'interfaccia utente
-        for t in self.times['current_tasks'].values():
+        for t in self.tasks['current_tasks'].values():
             self.widget.insert_task_in_list(t['name'], '#' + t['ticket'], t['elapsed_time'])
 
         self.widget.update_total_time()
@@ -397,14 +403,14 @@ class MainWindow(QMainWindow):
         self.tasks_autosave_timer.start(60 * 1000)
 
     def flush_tasks_to_savefile(self):
-        logging.info("Autoflushing times to file...")
-        self.times['current_tasks'].clear()
+        logging.info("Autoflushing tasks to file...")
+        self.tasks['current_tasks'].clear()
 
         for i in range(self.widget.task_list.count()):
             t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
-            self.times['current_tasks'][str(i)] = t.to_dict()
+            self.tasks['current_tasks'][str(i)] = t.to_dict()
 
-        self.times.save()
+        self.tasks.save()
 
     def search_for_updates(self, show_errors):
         def func(result):
@@ -482,7 +488,7 @@ class MainWindow(QMainWindow):
             logging.debug('Desktop desktop file not found while trying to remove it')
             InformationDialog('Desktop Shortcut', 'Desktop shortcut not present.').exec()
 
-    def show_changelog(self):
+    def show_changelog_if_needed(self):
         if self.config['first_run']:
             ChangelogDialog().exec()
 
@@ -508,6 +514,8 @@ class MainWindow(QMainWindow):
         # aggiorna il dizionario delle config
         self.config['window']['x'] = self.x()
         self.config['window']['y'] = self.y()
+        self.config['window']['h'] = self.height()
+        self.config['window']['w'] = self.width()
         # self.config['window']['always_on_top'] = bool(self.windowFlags() & Qt.WindowStaysOnTopHint)
         self.config['window']['always_on_top'] = True
 

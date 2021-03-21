@@ -1,6 +1,8 @@
 import json
 import logging
 
+from fstk import SavefilesMigrations, Globals
+
 
 class FlushFlagDict(dict):
 
@@ -84,7 +86,15 @@ class SaveFile(object):
     __file = None
     __flushed = None
 
-    def __init__(self, filename, default=None):
+    __filetypes_migrations = {
+        'config': (SavefilesMigrations.ConfigMigrations, Globals.config_file_version),
+        'tasks': (SavefilesMigrations.TasksMigrations, Globals.tasks_file_version)
+    }
+
+    def __init__(self, filename, filetype, default=None):
+        if filetype not in self.__filetypes_migrations:
+            raise ValueError("The specified filetype does not exist ({})".format(filetype))
+
         self.__file = open(filename, 'a+')
         self.__file.seek(0)
 
@@ -94,6 +104,11 @@ class SaveFile(object):
             self.__data = json.loads(self.__file.read(), object_hook=self.__object_hook)
             # resetta la flag, che potrebbe essere stata modificata durante il caricamento in memoria dei dati
             self.__flushed[0] = True
+            # applica le migrazioni al file, nel caso che una versione precedente del software stesse usando un versione precedente del file di salvataggio
+            mig = self.__filetypes_migrations[filetype]
+            print(self.__data)
+            self.__data = mig[0]().migrate(self.__data['version'], mig[1], self.__data)
+            print(self.__data)
         except json.decoder.JSONDecodeError as e:
             logging.warning('Exception occurred loading config file ({}): {}. Using default.'.format(self.__file.name, e))
 

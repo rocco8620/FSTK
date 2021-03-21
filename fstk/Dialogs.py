@@ -189,7 +189,7 @@ class HelpDialog(QDialog):
             </ul><br>
             <b>Info</b>
             <ul>
-                <li>The times are written to disk every minute, to prevent data loss</li>
+                <li>The tasks and times are written to disk every minute, to prevent data loss</li>
                 <li>This software features an auto update function</li>
             </ul><br>
             <b>Gotchas</b>
@@ -240,16 +240,10 @@ class ChangelogDialog(QDialog):
             <ul>
                 <li>Added a label showing the total hours counted</li>
                 <li>Added a button to clear the time recorded for a task without deleting the task itself</li>
+                <li>Added stats menu bar</li>
                 <li>Minor fixes</li>
             </ul><br>
-            <b>Release 0.1.1</b>
-            <ul>
-                <li>Fixed error handling on update search if internet was not available</li>
-                <li>Fixed long text formatting on message boxes</li>
-                <li>Improved changelog window</li>
-                <li>Minor fixes</li>
-            </ul><br>
-            <b>Release 0.1.0</b>
+            <b>Release 0.1.2</b>
             <ul>
                 <li>First release, basic time counting and task management</li>
                 <li>Auto update function</li>
@@ -273,3 +267,43 @@ class ChangelogDialog(QDialog):
         self.close_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         self.setLayout(self.box)
+
+
+class StatisticsDialog(QDialog):
+
+    def __init__(self, n_tasks):
+        QDialog.__init__(self)
+
+        self.setWindowTitle('Statistics')
+        self.setStyleSheet(default_window_style + '''
+            QDialog { background-color: #232931 }
+            QLineEdit { background-color: #444f5d; }
+            QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
+        ''')
+
+        self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
+
+        help_text = '''
+            <b>Statistics</b>
+            <ul>
+                <li>Total number of task created: <b>{}<b></li>
+            </ul>
+        '''.format(n_tasks)
+
+        # QWidget Layout
+        self.box = QGridLayout()
+
+        self.text = QLabel(help_text)
+        self.text.setTextFormat(Qt.RichText)
+        self.box.addWidget(self.text, 0, 0)
+
+        self.close_button = QPushButton('Close')
+
+        self.close_button.clicked.connect(lambda: self.accept())
+
+        self.box.addWidget(self.close_button, 1, 0, alignment=Qt.AlignCenter)
+
+        self.close_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
+        self.setLayout(self.box)
+        self.adjustSize()
