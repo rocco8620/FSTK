@@ -239,6 +239,7 @@ class ChangelogDialog(QDialog):
             <b>Release 0.2.0</b>
             <ul>
                 <li>Added a label showing the total hours counted</li>
+                <li>Added a button to clear the time recorded for a task without deleting the task itself</li>
                 <li>Minor fixes</li>
             </ul><br>
             <b>Release 0.1.1</b>

@@ -94,9 +94,17 @@ class RowElement(QWidget):
         self.del_record.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
         self.del_record.setMaximumWidth(self.set_min_size_from_content(self.add_time))
         self.del_record.setMinimumWidth(self.set_min_size_from_content(self.add_time))
-        self.del_record.clicked.connect(lambda: self.del_task())
+        self.del_record.clicked.connect(self.del_task)
 
         self.box.addWidget(self.del_record, 0, 2)
+
+        self.clear_record_time = QPushButton("C")
+        self.clear_record_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
+        self.clear_record_time.setMaximumWidth(self.set_min_size_from_content(self.add_time))
+        self.clear_record_time.setMinimumWidth(self.set_min_size_from_content(self.add_time))
+        self.clear_record_time.clicked.connect(self.clear_time)
+
+        self.box.addWidget(self.clear_record_time, 1, 2)
 
         self.box.setColumnStretch(2, 2)
 
@@ -139,12 +147,24 @@ class RowElement(QWidget):
     def del_task(self):
         dialog = ConfirmDialog(window_title='Confirm task deletion',
         #                       text='The time has not been reported yet, are you sure?')
-                               text='The time will be lost, are you sure?')
+                               text='The task will be deleted, are you sure?')
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 
         self.__list.takeItem(self.__list.row(self.__list_item))
 
+        self.__main_widget.update_total_time()
+
+    @Slot()
+    def clear_time(self):
+        dialog = ConfirmDialog(window_title='Confirm time deletion',
+                               # text='The time has not been reported yet, are you sure?')
+                               text='The time will be cleared, are you sure?')
+        if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
+            return
+
+        self.__seconds = 0
+        self.spent_time.setText(Utils.format_time(self.__seconds))
         self.__main_widget.update_total_time()
 
     # Metodi chiamati esternmente
@@ -324,6 +344,7 @@ class MainWindow(QMainWindow):
 
         other_menu = menu_bar.addMenu("Other")
         help_action = other_menu.addAction("Help")
+        help_action.setShortcut("Ctrl+H")
         help_action.triggered.connect(lambda: HelpDialog().exec())
 
         help_action = other_menu.addAction("Show changelog")
