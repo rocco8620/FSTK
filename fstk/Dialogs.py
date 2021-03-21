@@ -236,6 +236,11 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.2.0</b>
+            <ul>
+                <li>Added a label showing the total hours counted</li>
+                <li>Minor fixes</li>
+            </ul><br>
             <b>Release 0.1.1</b>
             <ul>
                 <li>Fixed error handling on update search if internet was not available</li>

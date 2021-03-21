@@ -9,7 +9,7 @@ from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QThread
 from PySide2.QtGui import QFont
 from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QWidget,
                                QListWidget, QListWidgetItem, QGridLayout,
-                               QSizePolicy, QSizeGrip)
+                               QSizePolicy)
 
 from .Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog
 from .SaveFiles import SaveFile
@@ -31,11 +31,13 @@ class RowElement(QWidget):
     __seconds = 0
 
     __saved = False
+    __main_widget = None
     __list = None
     __list_item = None
 
-    def __init__(self, name, ticket_number, elapsed_time, list, list_item):
+    def __init__(self, name, ticket_number, elapsed_time, main_widget, list, list_item):
         super(RowElement, self).__init__(None)
+        self.__main_widget = main_widget
         self.__list = list
         self.__list_item = list_item
         self.__seconds = elapsed_time
@@ -100,7 +102,8 @@ class RowElement(QWidget):
 
         self.setLayout(self.box)
 
-        self.show_time()
+        # aggiorna il label in modo da mostrare il tempo memorizzato
+        self.spent_time.setText(Utils.format_time(self.__seconds))
 
     # Azioni eseguite dall'interfaccia grafica
     @Slot()
@@ -142,14 +145,9 @@ class RowElement(QWidget):
 
         self.__list.takeItem(self.__list.row(self.__list_item))
 
+        self.__main_widget.update_total_time()
+
     # Metodi chiamati esternmente
-
-    def show_time(self):
-        hours = self.__seconds // 3600
-        minutes = (self.__seconds % 3600) // 60
-        seconds = (self.__seconds % 3600) % 60
-
-        self.spent_time.setText('{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds))
 
     def update_time(self, seconds):
         self.__seconds += seconds
@@ -157,7 +155,12 @@ class RowElement(QWidget):
         if self.__seconds < 0:
             self.__seconds = 0
 
-        self.show_time()
+        self.spent_time.setText(Utils.format_time(self.__seconds))
+
+        self.__main_widget.update_total_time()
+
+    def get_time(self):
+        return self.__seconds
 
     def to_dict(self):
         return {'name': self.name.text(), 'ticket': self.ticket_number.text().strip('#'),
@@ -180,28 +183,13 @@ class MainWidget(QWidget):
         # Create the list
         self.task_list = QListWidget()
 
-        self.add_task_button = QPushButton("+")
-        self.add_task_button.setFont(QFont('Mono', 17, weight=QFont.Bold))
-        self.add_task_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        self.add_task_button.clicked.connect(self.create_task)
-
-        self.grip = QSizeGrip(self)
-        self.grip.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
-
         # QWidget Layout
         self.layout = QGridLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.layout.setRowStretch(0, 1)
 
-        self.bottom_layout = QHBoxLayout()
-        self.bottom_layout.setContentsMargins(0, 0, 0, 0)
-
-        self.bottom_layout.addWidget(self.add_task_button)
-        self.bottom_layout.addWidget(self.grip)
-
         self.layout.addWidget(self.task_list, 0, 0)
-        self.layout.addLayout(self.bottom_layout, 1, 0)
 
         # Set the layout to the QWidget
         self.setLayout(self.layout)
@@ -230,7 +218,7 @@ class MainWidget(QWidget):
         item = QListWidgetItem(self.task_list)
 
         # Instanciate a custom widget
-        row = RowElement(name, ticket_number, elapsed_time, self.task_list, item)
+        row = RowElement(name, ticket_number, elapsed_time, self, self.task_list, item)
         item.setSizeHint(row.minimumSizeHint())
 
         # Associate the custom widget to the list entry
@@ -240,6 +228,13 @@ class MainWidget(QWidget):
         for s in self.task_list.selectedItems():
             self.task_list.itemWidget(s).update_time(+1)
 
+
+    def update_total_time(self):
+        total = 0
+        for i in range(self.task_list.count()):
+            total += self.task_list.itemWidget(self.task_list.item(i)).get_time()
+
+        self.total_time.setText('Total time: {}'.format(Utils.format_time(total)))
 
 
 
@@ -324,8 +319,8 @@ class MainWindow(QMainWindow):
         # always_on_top_action = options_menu.addAction("Always on top")
         # always_on_top_action.triggered.connect(self.toggle_window_stay_on_top)
 
-        remove_deskto_shortcut_action = options_menu.addAction("Remove finder shortcut")
-        remove_deskto_shortcut_action.triggered.connect(self.remove_deskto_shortcut)
+        remove_desktop_shortcut_action = options_menu.addAction("Remove finder shortcut")
+        remove_desktop_shortcut_action.triggered.connect(self.remove_desktop_shortcut)
 
         other_menu = menu_bar.addMenu("Other")
         help_action = other_menu.addAction("Help")
@@ -337,7 +332,6 @@ class MainWindow(QMainWindow):
         search_for_updates_action = other_menu.addAction("Search for updates")
         search_for_updates_action.triggered.connect(lambda: self.search_for_updates(show_errors=True))
 
-
         # Exit QAction
         exit_action = QAction("Exit", self)
         exit_action.setShortcut("Ctrl+Q")
@@ -345,6 +339,18 @@ class MainWindow(QMainWindow):
 
         options_menu.addAction(exit_action)
         menu_bar.installEventFilter(self)
+
+        status_bar = self.statusBar()
+
+        self.widget.total_time = QLabel('Total time: 00:00:00')
+
+        self.add_task_button = QPushButton("+")
+        self.add_task_button.setFont(QFont('Mono', 17, weight=QFont.Bold))
+        self.add_task_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.add_task_button.clicked.connect(self.widget.create_task)
+
+        status_bar.addPermanentWidget(self.add_task_button, 1)
+        status_bar.addPermanentWidget(self.widget.total_time, 3)
 
         self.setCentralWidget(self.widget)
 
@@ -361,6 +367,8 @@ class MainWindow(QMainWindow):
         # carico i task dal file di salvataggio all'interfaccia utente
         for t in self.times['current_tasks'].values():
             self.widget.insert_task_in_list(t['name'], '#' + t['ticket'], t['elapsed_time'])
+
+        self.widget.update_total_time()
 
         # lancio il timer per l'autosalvataggio dei tempi/task ogni minuto
         self.tasks_autosave_timer = QTimer()
@@ -430,7 +438,7 @@ class MainWindow(QMainWindow):
 
             desktop_file_content = desktop_file_content.format(
                                     Utils.get_local_file_path('icon.png'), # icona del software
-                                    '"{}" -m fstk'.format(sys.executable)
+                                    '"{}" -m fstk'.format(sys.executable) # path dell'eseguibile python e modulo da lanciare
                                    )
 
             with open(desktop_file_path, 'w') as o:
@@ -441,7 +449,7 @@ class MainWindow(QMainWindow):
         else:
             logging.debug('The desktop file is already existing')
 
-    def remove_deskto_shortcut(self):
+    def remove_desktop_shortcut(self):
         desktop_file_path = os.path.join(Globals.desktop_folder, Globals.desktop_file_name)
         logging.debug('Removing desktop shortcut')
 

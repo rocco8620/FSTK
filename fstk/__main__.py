@@ -60,7 +60,7 @@ with open(lock_file_path, 'w') as o:
     o.write(str(os.getpid()))
 
 # Qt Application
-app = QApplication(sys.argv) #444f5d
+app = QApplication(sys.argv)
 app.setStyleSheet(Globals.default_window_style + '''
     QMenuBar, QMenu { background-color: #444f5d } 
     QMenu::item:selected { background-color: #232931 } 
@@ -69,6 +69,7 @@ app.setStyleSheet(Globals.default_window_style + '''
     QListWidget::item, QSizeGrip { background-color: #353d48; } 
     QListWidget::item:selected { background-color: #5d54a4; } 
 
+    QStatusBar { background-color: #444f5d } 
 
 ''')
 
