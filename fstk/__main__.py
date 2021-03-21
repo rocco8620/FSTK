@@ -70,6 +70,12 @@ app.setStyleSheet(Globals.default_window_style + '''
     QListWidget::item:selected { background-color: #5d54a4; } 
 
     QStatusBar { background-color: #444f5d } 
+    QScrollBar {
+        background-color: #353d48;
+    }
+    QScrollBar::handle {
+        background: #777e87;
+    }
 
 ''')
 

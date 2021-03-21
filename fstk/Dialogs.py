@@ -178,14 +178,15 @@ class HelpDialog(QDialog):
         help_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
-            <b>Shortcuts</b><br>
-            <br>
-            <b>Ctrl + Q</b>: Exits the software<br>
-            <br>
+            <b>Shortcuts</b>
+            <ul>
+                <li>Ctrl + Q</b>: Exits the software</li>
+                <li>Ctrl + H</b>: Opens this help page</li>
+            </ul><br>
             <b>Tips</b>
             <ul>
                 <li>To edit the redmine ticket number on an entry, click on it</li>
-                <li>To hide the window, click it's taskbar element</li>
+                <li>To reorder the tasks in the list, drag them</li>
             </ul><br>
             <b>Info</b>
             <ul>
@@ -240,7 +241,9 @@ class ChangelogDialog(QDialog):
             <ul>
                 <li>Added a label showing the total hours counted</li>
                 <li>Added a button to clear the time recorded for a task without deleting the task itself</li>
+                <li>The tasks in the list can now be reordered dragging them</li>
                 <li>Added stats menu bar</li>
+                <li>Added button to minimize window</li>
                 <li>Minor fixes</li>
             </ul><br>
             <b>Release 0.1.2</b>

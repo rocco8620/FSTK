@@ -9,7 +9,7 @@ from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QThread
 from PySide2.QtGui import QFont
 from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QWidget,
                                QListWidget, QListWidgetItem, QGridLayout,
-                               QSizePolicy)
+                               QSizePolicy, QAbstractItemView, QListView)
 
 from .Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog, \
     StatisticsDialog
@@ -202,6 +202,12 @@ class MainWidget(QWidget):
 
         # Create the list
         self.task_list = QListWidget()
+        self.task_list.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.task_list.setMovement(QListView.Snap)
+        self.task_list.setDragEnabled(True)
+        self.task_list.viewport().setAcceptDrops(True)
+        self.task_list.setDropIndicatorShown(True)
+        self.task_list.setDragDropMode(QAbstractItemView.InternalMove)
 
         # QWidget Layout
         self.layout = QGridLayout()
@@ -343,6 +349,12 @@ class MainWindow(QMainWindow):
         remove_desktop_shortcut_action = options_menu.addAction("Remove finder shortcut")
         remove_desktop_shortcut_action.triggered.connect(self.remove_desktop_shortcut)
 
+        # Exit QAction
+        exit_action = QAction("Exit", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.triggered.connect(self.exit_app)
+        options_menu.addAction(exit_action)
+
         statistics_menu = menu_bar.addMenu("Statistics")
         usage_action = statistics_menu.addAction("Usage")
         usage_action.triggered.connect(lambda: StatisticsDialog(self.config['stats']['total_created_tasks']).exec())
@@ -358,12 +370,18 @@ class MainWindow(QMainWindow):
         search_for_updates_action = other_menu.addAction("Search for updates")
         search_for_updates_action.triggered.connect(lambda: self.search_for_updates(show_errors=True))
 
-        # Exit QAction
-        exit_action = QAction("Exit", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.triggered.connect(self.exit_app)
+        self.menubar_corner_holder = QWidget()
+        menubar_corner_layout = QHBoxLayout(self.menubar_corner_holder)
 
-        options_menu.addAction(exit_action)
+        self.minimize_button = QPushButton('-')
+        self.minimize_button.setFont(QFont('Mono', 10))
+        self.minimize_button.setStyleSheet('padding-top: 2; padding-bottom: 2; padding-left: 8; padding-right: 8;')
+        self.minimize_button.clicked.connect(self.showMinimized)
+
+        menubar_corner_layout.addWidget(self.minimize_button)
+        menubar_corner_layout.setMargin(4)
+
+        menu_bar.setCornerWidget(self.menubar_corner_holder)
         menu_bar.installEventFilter(self)
 
         status_bar = self.statusBar()

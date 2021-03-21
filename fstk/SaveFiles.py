@@ -106,9 +106,7 @@ class SaveFile(object):
             self.__flushed[0] = True
             # applica le migrazioni al file, nel caso che una versione precedente del software stesse usando un versione precedente del file di salvataggio
             mig = self.__filetypes_migrations[filetype]
-            print(self.__data)
             self.__data = mig[0]().migrate(self.__data['version'], mig[1], self.__data)
-            print(self.__data)
         except json.decoder.JSONDecodeError as e:
             logging.warning('Exception occurred loading config file ({}): {}. Using default.'.format(self.__file.name, e))
 

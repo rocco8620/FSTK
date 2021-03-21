@@ -5,7 +5,7 @@ Written in Python and PyQT5/PySide2
 
 ## Installation, configuration and use
 
-1\. Create a virtual environ
+1\. Create a virtual environment
 
 ~~~
 virtualenv env -p python3
