@@ -6,7 +6,7 @@ import sys
 import requests
 from PySide2 import QtGui
 from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QThread
-from PySide2.QtGui import QFont
+from PySide2.QtGui import QFont, QDrag, QPixmap, QPainter, QCursor
 from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QWidget,
                                QListWidget, QListWidgetItem, QGridLayout,
                                QSizePolicy, QAbstractItemView, QListView)
@@ -37,7 +37,7 @@ class RowElement(QWidget):
     __list_item = None
 
     def __init__(self, name, ticket_number, elapsed_time, main_widget, list, list_item):
-        super(RowElement, self).__init__(None)
+        super().__init__()
         self.__main_widget = main_widget
         self.__list = list
         self.__list_item = list_item
@@ -195,15 +195,35 @@ class RowElement(QWidget):
         return width
 
 
+class ListWidget(QListWidget):
+
+    def __init__(self):
+        super().__init__()
+
+    def startDrag(self, supported_actions):
+        drag = QDrag(self)
+        drag.setMimeData(self.model().mimeData(self.selectedIndexes()))
+        self.pixmap = QPixmap(self.viewport().visibleRegion().boundingRect().size())
+        self.pixmap.fill(Qt.transparent)
+        painter = QPainter(self.pixmap)
+
+        for i in self.selectedIndexes():
+            painter.drawPixmap(self.visualRect(i), self.viewport().grab(self.visualRect(i)))
+
+        drag.setPixmap(self.pixmap)
+        drag.setHotSpot(self.viewport().mapFromGlobal(QCursor.pos()))
+        drag.exec_(supported_actions, Qt.MoveAction)
+
 class MainWidget(QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
 
         # Create the list
-        self.task_list = QListWidget()
+        self.task_list = ListWidget()
         self.task_list.setSelectionMode(QAbstractItemView.SingleSelection)
         self.task_list.setMovement(QListView.Snap)
+        self.task_list.setDefaultDropAction(Qt.MoveAction)
         self.task_list.setDragEnabled(True)
         self.task_list.viewport().setAcceptDrops(True)
         self.task_list.setDropIndicatorShown(True)
@@ -241,13 +261,14 @@ class MainWidget(QWidget):
 
     def insert_task_in_list(self, name, ticket_number='', elapsed_time=0):
         # Add to list a new item (item is simply an entry in your list)
-        item = QListWidgetItem(self.task_list)
+        item = QListWidgetItem()
 
         # Instanciate a custom widget
         row = RowElement(name, ticket_number, elapsed_time, self, self.task_list, item)
         item.setSizeHint(row.minimumSizeHint())
 
         # Associate the custom widget to the list entry
+        self.task_list.addItem(item)
         self.task_list.setItemWidget(item, row)
 
     def count_time(self):
@@ -526,7 +547,7 @@ class MainWindow(QMainWindow):
         elif event.type() == QEvent.Type.MouseButtonPress:
             self.oldPos = event.globalPos()
 
-        return super(MainWindow, self).eventFilter(source, event)
+        return super().eventFilter(source, event)
 
     def closeEvent(self, _):
         # aggiorna il dizionario delle config

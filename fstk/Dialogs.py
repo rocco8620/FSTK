@@ -237,6 +237,11 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.2.1</b>
+            <ul>
+                <li>Fix drag & drop bug that made some tasks disappear if reordered</li>
+                <li>Fixed bug that made the tasks controls disappear while the tasks was drag & dropped</li>
+            </ul><br>
             <b>Release 0.2.0</b>
             <ul>
                 <li>Added a label showing the total hours counted</li>
