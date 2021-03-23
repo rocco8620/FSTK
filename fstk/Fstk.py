@@ -11,8 +11,9 @@ from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMain
                                QListWidget, QListWidgetItem, QGridLayout,
                                QSizePolicy, QAbstractItemView, QListView)
 
-from .Dialogs import AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog, \
-    StatisticsDialog
+from .Dialogs import (AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog,
+                      StatisticsDialog)
+
 from .SaveFiles import SaveFile
 from . import Globals, Utils
 from . import Updater
@@ -41,7 +42,6 @@ class RowElement(QWidget):
         self.__main_widget = main_widget
         self.__list = list
         self.__list_item = list_item
-        self.__seconds = elapsed_time
 
         self.box = QGridLayout()
 
@@ -57,7 +57,7 @@ class RowElement(QWidget):
         self.redmine_elements = QHBoxLayout()
 
         self.ticket_number = QPushButton(ticket_number)
-        self.ticket_number.setStyleSheet('border: 0; background-color: transparent')
+        self.ticket_number.setStyleSheet('QPushButton { border: 0; background-color: transparent }')
         self.ticket_number.clicked.connect(self.edit_ticket_number)
         self.redmine_elements.addWidget(self.ticket_number)
 
@@ -112,7 +112,9 @@ class RowElement(QWidget):
         self.setLayout(self.box)
 
         # aggiorna il label in modo da mostrare il tempo memorizzato
-        self.spent_time.setText(Utils.format_time(self.__seconds))
+        self.set_time(elapsed_time)
+
+        #
 
     # Azioni eseguite dall'interfaccia grafica
     @Slot()
@@ -171,17 +173,29 @@ class RowElement(QWidget):
     # Metodi chiamati esternmente
 
     def update_time(self, seconds):
-        self.__seconds += seconds
+        self.set_time(self.get_time()+seconds)
+
+    def get_time(self):
+        return self.__seconds
+
+    def set_time(self, seconds):
+        old_seconds = self.__seconds
+        self.__seconds = seconds
 
         if self.__seconds < 0:
             self.__seconds = 0
 
         self.spent_time.setText(Utils.format_time(self.__seconds))
 
-        self.__main_widget.update_total_time()
+        elements = [self.spent_time, self.add_time, self.sub_time, self.del_record, self.clear_record_time, self.ticket_number, self.name]
+        # valuta se è possibile che sia avvenuta un condizione che provocherebbe il cambio di colore degli elementi
+        # se non può essere avvenuta skippa il codice di set dello style
+        if (old_seconds == 0 and self.__seconds != 0) or (old_seconds != 0 and self.__seconds == 0) or (old_seconds == self.__seconds == 0):
+            for x in elements:
+                x.setProperty('counting', self.__seconds == 0)
+                x.setStyle(x.style())
 
-    def get_time(self):
-        return self.__seconds
+        self.__main_widget.update_total_time()
 
     def to_dict(self):
         return {'name': self.name.text(), 'ticket': self.ticket_number.text().strip('#'), 'elapsed_time': self.__seconds}

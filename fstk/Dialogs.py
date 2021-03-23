@@ -239,7 +239,8 @@ class ChangelogDialog(QDialog):
             <br>
             <b>Release 0.3.0</b>
             <ul>
-                <li>Fixed incompatibility with 3.6.0-3.8.5</li>
+                <li>Fixed incompatibility with python 3.6.0-3.8.5</li>
+                <li>A task with 0 time counted is now grey</li>
             </ul><br>
             <b>Release 0.2.1</b>
             <ul>
