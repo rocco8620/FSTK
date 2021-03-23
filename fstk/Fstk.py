@@ -26,7 +26,11 @@ class QLabelClickable(QLabel):
         QLabel.__init__(self, parent)
 
     def mousePressEvent(self, ev):
-        self.clicked.emit()
+        real_rect = self.fontMetrics().boundingRect(self.rect(), Qt.TextWordWrap, self.text())
+        if real_rect.contains(ev.pos()):
+            self.clicked.emit()
+        else:
+            ev.ignore()
 
 
 class RowElement(QWidget):
@@ -57,7 +61,7 @@ class RowElement(QWidget):
         self.redmine_elements = QHBoxLayout()
 
         self.ticket_number = QPushButton(ticket_number)
-        self.ticket_number.setStyleSheet('QPushButton { border: 0; background-color: transparent }')
+        self.ticket_number.setStyleSheet('border: 0; background-color: transparent')
         self.ticket_number.clicked.connect(self.edit_ticket_number)
         self.redmine_elements.addWidget(self.ticket_number)
 
@@ -114,8 +118,6 @@ class RowElement(QWidget):
         # aggiorna il label in modo da mostrare il tempo memorizzato
         self.set_time(elapsed_time)
 
-        #
-
     # Azioni eseguite dall'interfaccia grafica
     @Slot()
     def edit_ticket_number(self):
@@ -166,9 +168,7 @@ class RowElement(QWidget):
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 
-        self.__seconds = 0
-        self.spent_time.setText(Utils.format_time(self.__seconds))
-        self.__main_widget.update_total_time()
+        self.set_time(0)
 
     # Metodi chiamati esternmente
 
