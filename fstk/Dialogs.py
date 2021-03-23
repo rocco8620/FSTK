@@ -187,6 +187,7 @@ class HelpDialog(QDialog):
             <ul>
                 <li>To edit the redmine ticket number on an entry, click on it</li>
                 <li>To reorder the tasks in the list, drag & drop them</li>
+                <li>Assign a color to a task right click on it</li>
             </ul><br>
             <b>Info</b>
             <ul>
@@ -239,7 +240,8 @@ class ChangelogDialog(QDialog):
             <br>
             <b>Release 0.3.0</b>
             <ul>
-                <li>A task with 0 time counted is now grey colored</li>
+                <li>The tasks can be assigned a color right clicking on them</li>
+                <li>A task with 0 time counted is now greyed</li>
                 <li>Tasks can now be beleted using 'Del' keyboard button</li>
                 <li>Clicking on empty space near a task name wont open the 'change name dialog' anymore</li>
                 <li>Fixed incompatibility with python 3.6.0-3.8.5</li>

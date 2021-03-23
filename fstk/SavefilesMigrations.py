@@ -56,3 +56,9 @@ class TasksMigrations(Migration):
 
     def migrate(self, from_, to, d):
         return super(TasksMigrations, self)._migrate('tasks', from_, to, d)
+
+    def _migrate_1_2(self, d):
+        for t in d['current_tasks']:
+            d['current_tasks'][t]['color_group'] = 'No color'
+
+        return True, None

@@ -22,7 +22,7 @@ class FlushFlagDict(dict):
         self.__flushed[0] = False
 
     def __repr__(self):
-        return "<FlushFlagDict {}>".format(super(FlushFlagDict, self).__repr__())
+        return "<FlushFlagDict ({}) {}>".format('Flushed' if self.__flushed[0] else 'Not flushed', super(FlushFlagDict, self).__repr__())
 
     def __transparent_obj_conversion(self, e):
         if isinstance(e, dict):
@@ -80,6 +80,16 @@ class FlushFlagDict(dict):
 #         else:
 #             return e
 
+class UncopiableList(list):
+    # lista che overrida __copy__ e __deepcopy__ in modo da evitare che una copy() o deepcopy() possa generarne un duplicato,
+    # che provoca una perdita di referenza per chi manteneva una referenza all'oggetto orignale
+
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo):
+        return self
+
 class SaveFile(object):
 
     __data = None
@@ -98,7 +108,7 @@ class SaveFile(object):
         self.__file = open(filename, 'a+')
         self.__file.seek(0)
 
-        self.__flushed = [None]
+        self.__flushed = UncopiableList([True])
 
         try:
             self.__data = json.loads(self.__file.read(), object_hook=self.__object_hook)

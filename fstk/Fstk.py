@@ -6,16 +6,16 @@ import sys
 import requests
 from PySide2 import QtGui
 from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QThread
-from PySide2.QtGui import QFont, QDrag, QPixmap, QPainter, QCursor
+from PySide2.QtGui import QFont, QDrag, QPixmap, QPainter, QCursor, QColor, QPalette
 from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QWidget,
                                QListWidget, QListWidgetItem, QGridLayout,
-                               QSizePolicy, QAbstractItemView, QListView)
+                               QSizePolicy, QAbstractItemView, QListView, QMenu, QStyleOption)
 
 from .Dialogs import (AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog,
                       StatisticsDialog)
 
 from .SaveFiles import SaveFile
-from . import Globals, Utils
+from . import Globals, Utils, Palette
 from . import Updater
 
 
@@ -35,13 +35,15 @@ class QLabelClickable(QLabel):
 
 class RowElement(QWidget):
     __seconds = 0
+    __color_group = 'No color'
 
     __saved = False
     __main_widget = None
     __list = None
     __list_item = None
 
-    def __init__(self, name, ticket_number, elapsed_time, main_widget, list, list_item):
+
+    def __init__(self, options, main_widget, list, list_item):
         super().__init__()
         self.__main_widget = main_widget
         self.__list = list
@@ -49,7 +51,7 @@ class RowElement(QWidget):
 
         self.box = QGridLayout()
 
-        self.name = QLabelClickable(name)
+        self.name = QLabelClickable(options['name'])
         self.name.setWordWrap(True)
         self.name.clicked.connect(self.edit_name)
 
@@ -60,7 +62,7 @@ class RowElement(QWidget):
 
         self.redmine_elements = QHBoxLayout()
 
-        self.ticket_number = QPushButton(ticket_number)
+        self.ticket_number = QPushButton(options['ticket_number'])
         self.ticket_number.setStyleSheet('border: 0; background-color: transparent')
         self.ticket_number.clicked.connect(self.edit_ticket_number)
         self.redmine_elements.addWidget(self.ticket_number)
@@ -116,7 +118,27 @@ class RowElement(QWidget):
         self.setLayout(self.box)
 
         # aggiorna il label in modo da mostrare il tempo memorizzato
-        self.set_time(elapsed_time)
+        self.set_time(options['elapsed_time'])
+
+        # imposta flag per i visualizzare correttamente i gruppi colore
+        self.setAutoFillBackground(True)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setStyleSheet('RowElement { border: solid ' + Palette.group_colors[options['color_group']] + '; border-width: 0px 0px 0px 5px; }')
+        self.__color_group = options['color_group']
+
+    def contextMenuEvent(self, event):
+        contex_menu = QMenu(self)
+
+        ris = {}
+
+        for name, color in Palette.group_colors.items():
+            ris[contex_menu.addAction(name)] = (name, color)
+
+        action = contex_menu.exec_(self.mapToGlobal(event.pos()))
+
+        if action is not None:
+            self.setStyleSheet('RowElement { border: solid ' + ris[action][1] + '; border-width: 0px 0px 0px 5px; }')
+            self.__color_group = ris[action][0]
 
     # Azioni eseguite dall'interfaccia grafica
     @Slot()
@@ -198,7 +220,7 @@ class RowElement(QWidget):
         self.__main_widget.update_total_time()
 
     def to_dict(self):
-        return {'name': self.name.text(), 'ticket': self.ticket_number.text().strip('#'), 'elapsed_time': self.__seconds}
+        return {'name': self.name.text(), 'ticket': self.ticket_number.text().strip('#'), 'elapsed_time': self.__seconds, 'color_group': self.__color_group}
 
     # funzione per la formattazione degli elementi grafici
     @staticmethod
@@ -281,12 +303,12 @@ class MainWidget(QWidget):
         self.insert_task_in_list(name, ticket_number)
         self.main_window.config['stats']['total_created_tasks'] += 1
 
-    def insert_task_in_list(self, name, ticket_number='', elapsed_time=0):
+    def insert_task_in_list(self, name, ticket_number='', elapsed_time=0, color_group='No color'):
         # Add to list a new item (item is simply an entry in your list)
         item = QListWidgetItem()
 
         # Instanciate a custom widget
-        row = RowElement(name, ticket_number, elapsed_time, self, self.task_list, item)
+        row = RowElement({'name': name, 'ticket_number': ticket_number, 'elapsed_time': elapsed_time, 'color_group': color_group}, self, self.task_list, item)
         item.setSizeHint(row.minimumSizeHint())
 
         # Associate the custom widget to the list entry
@@ -454,7 +476,7 @@ class MainWindow(QMainWindow):
 
         # carico i task dal file di salvataggio all'interfaccia utente
         for t in self.tasks['current_tasks'].values():
-            self.widget.insert_task_in_list(t['name'], '#' + t['ticket'], t['elapsed_time'])
+            self.widget.insert_task_in_list(t['name'], '#' + t['ticket'], t['elapsed_time'], t['color_group'])
 
         self.widget.update_total_time()
 
@@ -466,11 +488,9 @@ class MainWindow(QMainWindow):
     def flush_tasks_to_savefile(self):
         logging.info("Autoflushing tasks to file...")
         self.tasks['current_tasks'].clear()
-
         for i in range(self.widget.task_list.count()):
             t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
             self.tasks['current_tasks'][str(i)] = t.to_dict()
-
         self.tasks.save()
 
     def search_for_updates(self, show_errors):
@@ -562,10 +582,11 @@ class MainWindow(QMainWindow):
     #     print('Toggled: ', not bool(self.windowFlags() & Qt.WindowStaysOnTopHint))
 
     def eventFilter(self, source, event):
-        if event.type() == QEvent.Type.MouseMove and event.buttons() & Qt.LeftButton:
-            delta = QPoint(event.globalPos() - self.oldPos)
-            self.move(self.x() + delta.x(), self.y() + delta.y())
-            self.oldPos = event.globalPos()
+        if event.type() == QEvent.Type.MouseMove:
+            if event.buttons() & Qt.LeftButton:
+                delta = QPoint(event.globalPos() - self.oldPos)
+                self.move(self.x() + delta.x(), self.y() + delta.y())
+                self.oldPos = event.globalPos()
         elif event.type() == QEvent.Type.MouseButtonPress:
             self.oldPos = event.globalPos()
 
@@ -594,5 +615,6 @@ class MainWindow(QMainWindow):
     def exit_app(self, checked):
         self.closeEvent(None)
         QApplication.quit()
+
 
 

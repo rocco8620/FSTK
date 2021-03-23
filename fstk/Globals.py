@@ -11,7 +11,7 @@ default_window_style = '''
 '''
 
 config_file_version = 2
-tasks_file_version = 1
+tasks_file_version = 2
 
 default_config = {
     'window': {
@@ -32,7 +32,7 @@ default_config = {
 }
 
 default_tasks = {
-    'current_tasks': { '0': {'name': 'Task di esempio', 'ticket': '1234', 'elapsed_time': 4632} },
+    'current_tasks': { '0': {'name': 'Task di esempio', 'ticket': '1234', 'elapsed_time': 4632, 'color_group': 'Blue'} },
     'version': tasks_file_version
 }
 
