@@ -241,6 +241,7 @@ class ChangelogDialog(QDialog):
             <ul>
                 <li>Fixed incompatibility with python 3.6.0-3.8.5</li>
                 <li>A task with 0 time counted is now grey</li>
+                <li>Tasks can now beleted using 'Del' keyboard button</li>
             </ul><br>
             <b>Release 0.2.1</b>
             <ul>

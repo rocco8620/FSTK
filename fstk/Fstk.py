@@ -228,6 +228,14 @@ class ListWidget(QListWidget):
         drag.setHotSpot(self.viewport().mapFromGlobal(QCursor.pos()))
         drag.exec_(supported_actions, Qt.MoveAction)
 
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Delete:
+            for s in self.selectedItems():
+                self.itemWidget(s).del_task()
+        else:
+            super().keyPressEvent(event)
+
+
 class MainWidget(QWidget):
 
     def __init__(self):
