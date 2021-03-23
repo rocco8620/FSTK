@@ -186,7 +186,7 @@ class HelpDialog(QDialog):
             <b>Tips</b>
             <ul>
                 <li>To edit the redmine ticket number on an entry, click on it</li>
-                <li>To reorder the tasks in the list, drag them</li>
+                <li>To reorder the tasks in the list, drag & drop them</li>
             </ul><br>
             <b>Info</b>
             <ul>
@@ -237,6 +237,10 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.3.0</b>
+            <ul>
+                <li>Fixed incompatibility with 3.6.0-3.8.5</li>
+            </ul><br>
             <b>Release 0.2.1</b>
             <ul>
                 <li>Fix drag & drop bug that made some tasks disappear if reordered</li>

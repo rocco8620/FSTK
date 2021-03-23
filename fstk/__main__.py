@@ -10,7 +10,13 @@ from . import Globals
 # configuro il logging
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s][%(levelname)s] %(message)s', filename='')
 
-Globals.config_folder = os.path.expanduser(Globals.config_folder)
+# se l'ambiente specifica una cartella di configurazione specifica
+if os.getenv('FSTK_CONFIG_FOLDER') is not None:
+    Globals.config_folder = os.path.expanduser(os.getenv('FSTK_CONFIG_FOLDER'))
+    logging.info('Enviroment variable FSTK_CONFIG_FOLDER defined, using {} as a config folder.'.format(Globals.config_folder))
+else:
+    Globals.config_folder = os.path.expanduser(Globals.config_folder)
+
 Globals.desktop_folder = os.path.expanduser(Globals.desktop_folder)
 
 if not os.path.isdir(Globals.config_folder):

@@ -38,5 +38,11 @@ setuptools.setup(
         'PySide2>=5.10',
         'requests>=2'
     ],
+    extras_require = {
+        ':python_version < "3.8.5"': [
+            'importlib_resources',
+        ],
+    },
     python_requires='>=3',
 )
+

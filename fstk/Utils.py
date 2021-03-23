@@ -1,4 +1,8 @@
-import importlib.resources as pkg_resources
+try:
+    import importlib.resources as pkg_resources
+except ImportError:
+    import importlib_resources as pkg_resources
+
 from . import assets
 
 ASSETS_PATHS_CACHE = {}
