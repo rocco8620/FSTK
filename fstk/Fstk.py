@@ -140,6 +140,13 @@ class RowElement(QWidget):
             self.setStyleSheet('RowElement { border: solid ' + ris[action][1] + '; border-width: 0px 0px 0px 5px; }')
             self.__color_group = ris[action][0]
 
+    def mousePressEvent(self, event):
+        # ignora i click con il tasto destro per selezionare come attivo un widget
+        if event.button() != Qt.RightButton:
+            super().mousePressEvent(event)
+        else:
+            event.accept()
+
     # Azioni eseguite dall'interfaccia grafica
     @Slot()
     def edit_ticket_number(self):
