@@ -231,6 +231,7 @@ class HelpDialog(QDialog):
             <ul>
                 <li>The tasks and times are written to disk every minute, to prevent data loss</li>
                 <li>This software features an auto update function</li>
+                </li>Logs are saved on /tmp/fstk.log</li>
             </ul><br>
             <b>Gotchas</b>
             <ul>
@@ -279,7 +280,7 @@ class ChangelogDialog(QDialog):
             <b>Release 0.4.0</b>
             <ul>
                 <li>Invalid data for the task name or ticket number is not ignored anymore</li>
-                
+                <li>Logs are now saved also on /tmp/fstk.log</li>
             </ul><br>
             <b>Release 0.3.0</b>
             <ul>

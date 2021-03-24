@@ -8,7 +8,14 @@ from .Fstk import MainWidget, MainWindow
 from . import Globals
 
 # configuro il logging
-logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s][%(levelname)s] %(message)s', filename='')
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='[%(asctime)s][%(levelname)s] %(message)s',
+                    handlers=[
+                        logging.FileHandler('/tmp/fstk.log'),
+                        logging.StreamHandler()
+                    ])
+logging.debug('FSTK started...')
 
 # se l'ambiente specifica una cartella di configurazione specifica
 if os.getenv('FSTK_CONFIG_FOLDER') is not None:
