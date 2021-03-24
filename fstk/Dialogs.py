@@ -9,8 +9,9 @@ from .Globals import default_window_style
 
 class AskForTextDialog(QDialog):
 
-    def __init__(self, window_title, length, initial_text):
+    def __init__(self, window_title, length, initial_text, validator=None):
         QDialog.__init__(self)
+        self.__validator = validator
 
         self.setWindowTitle(window_title)
         self.resize(length, 100)
@@ -28,15 +29,27 @@ class AskForTextDialog(QDialog):
         self.line = QLineEdit(initial_text)
         self.box.addWidget(self.line, 0, 0)
 
+        self.error_label = QLabel()
+        self.error_label.setStyleSheet('color: #fa7161')
+        self.box.addWidget(self.error_label, 1, 0)
+
         self.ok_button = QPushButton('Ok')
-
-        self.ok_button.clicked.connect(lambda: self.accept())
-
-        self.box.addWidget(self.ok_button, 1, 0, alignment=Qt.AlignCenter)
+        self.ok_button.clicked.connect(self.ok_handler)
+        self.box.addWidget(self.ok_button, 2, 0, alignment=Qt.AlignCenter)
 
         self.ok_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         self.setLayout(self.box)
+
+    def ok_handler(self):
+        if self.__validator is not None:
+            success, error_msg = self.__validator(self.line.text())
+            if not success:
+                self.line.setStyleSheet('background-color: #fa7161')
+                self.error_label.setText(error_msg)
+                return
+
+        self.accept()
 
 class ConfirmDialog(QDialog):
 
@@ -142,10 +155,14 @@ class NewTaskDialog(QDialog):
         self.box.addWidget(self.name, 0, 1)
         self.box.addWidget(self.ticket_number, 1, 1)
 
+        self.error_label = QLabel()
+        self.error_label.setStyleSheet('color: #fa7161')
+        self.box.addWidget(self.error_label, 2, 0, 1, 2)
+
         self.ok_button = QPushButton('Save')
         self.ok_button.clicked.connect(self.check_data)
 
-        self.box.addWidget(self.ok_button, 2, 0, 1, 2, alignment=Qt.AlignCenter)
+        self.box.addWidget(self.ok_button, 3, 0, 1, 2, alignment=Qt.AlignCenter)
 
         self.ok_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
@@ -153,13 +170,34 @@ class NewTaskDialog(QDialog):
 
     def check_data(self):
         if len(self.name.toPlainText().strip()) == 0:
-            self.reject()
+            self.show_error('The task name cannot be empty', self.name)
             return
+        else:
+            self.show_valid(self.name)
 
-        self.name.setPlainText(self.name.toPlainText().strip().replace('\n', ' '))
+        if self.ticket_number.text().strip() != '':
+            success, error_msg = Utils.redmine_ticket_number_validator(self.ticket_number.text())
+            if not success:
+                self.show_error(error_msg, self.ticket_number)
+                return
+            else:
+                self.show_valid(self.ticket_number)
+
+        self.name.setPlainText(self.name.toPlainText().strip().replace('\n', ' ').replace('\t', ''))
         self.ticket_number.setText('#' + self.ticket_number.text().strip(' \n\t#'))
 
         self.accept()
+
+    def show_error(self, message, widget):
+
+        widget.setStyleSheet('background-color: #fa7161')
+        self.error_label.setText(message)
+
+    def show_valid(self, widget):
+        widget.setStyleSheet('background-color: #80fa61')
+
+
+
 
 class HelpDialog(QDialog):
 
@@ -238,6 +276,11 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.4.0</b>
+            <ul>
+                <li>Invalid data for the task name or ticket number is not ignored anymore</li>
+                
+            </ul><br>
             <b>Release 0.3.0</b>
             <ul>
                 <li>The tasks can be assigned a color right clicking on them</li>

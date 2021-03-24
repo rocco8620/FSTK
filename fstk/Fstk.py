@@ -151,24 +151,19 @@ class RowElement(QWidget):
     @Slot()
     def edit_ticket_number(self):
         dialog = AskForTextDialog(window_title='Set redmine ticket number',
-                                  initial_text=self.ticket_number.text().strip('#'), length=250)
+                                  initial_text=self.ticket_number.text().strip('#'), length=250,
+                                  validator=Utils.redmine_ticket_number_validator)
 
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 
-        n = dialog.line.text().strip('# ')
-
-        try:
-            n = int(n)
-            if 0 < n < 1000000:
-                self.ticket_number.setText('#' + str(n))
-        except ValueError:
-            pass
+        self.ticket_number.setText('#' + dialog.line.text().strip('# '))
 
     @Slot()
     def edit_name(self):
         dialog = AskForTextDialog(window_title='Set task name',
-                                  initial_text=self.name.text(), length=600)
+                                  initial_text=self.name.text(), length=600,
+                                  validator=Utils.not_empty_validator)
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 

@@ -20,3 +20,32 @@ def format_time(seconds):
         seconds = (seconds % 3600) % 60
 
         return '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+
+
+def redmine_ticket_number_validator(text):
+    """
+
+    :param text:
+    :return: Success, Error message
+    """
+    n = text.strip('# ')
+
+    try:
+        n = int(n)
+        if 0 < n < 1000000:
+            return True, None
+        else:
+            return False, 'The number must be between 0 and 1000000'
+    except ValueError:
+        return False, 'The number is invalid. It must be an integer'
+
+def not_empty_validator(text):
+    """
+
+    :param text:
+    :return: Success, Error message
+    """
+    if text.strip() == '':
+        return False, 'The text cannot be empty'
+    else:
+        return True, None
