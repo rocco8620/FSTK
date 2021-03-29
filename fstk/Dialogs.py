@@ -1,7 +1,9 @@
+import re
+
 from PySide2 import QtGui
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QDialog, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QLabel, QPlainTextEdit, \
-    QHBoxLayout, QTextEdit
+    QTextEdit, QCheckBox
 
 from . import Globals, Utils
 from .Globals import default_window_style
@@ -51,6 +53,7 @@ class AskForTextDialog(QDialog):
 
         self.accept()
 
+
 class ConfirmDialog(QDialog):
 
     def __init__(self, window_title, text, positive_button='Ok', negative_button='Cancel', html=False):
@@ -91,6 +94,7 @@ class ConfirmDialog(QDialog):
 
         self.setLayout(self.box)
 
+
 class InformationDialog(QDialog):
 
     def __init__(self, window_title, text, html=False, max_width=700):
@@ -128,6 +132,7 @@ class InformationDialog(QDialog):
         self.setLayout(self.box)
         self.adjustSize()
 
+
 class NewTaskDialog(QDialog):
 
     def __init__(self):
@@ -150,6 +155,7 @@ class NewTaskDialog(QDialog):
         self.box.addWidget(QLabel('Ticket:'), 1, 0)
 
         self.name = QPlainTextEdit()
+        self.name.setTabChangesFocus(True)
         self.ticket_number = QLineEdit()
 
         self.box.addWidget(self.name, 0, 1)
@@ -173,7 +179,7 @@ class NewTaskDialog(QDialog):
             self.show_error('The task name cannot be empty', self.name)
             return
         else:
-            self.show_valid(self.name)
+            self.clear_error(self.name)
 
         if self.ticket_number.text().strip() != '':
             success, error_msg = Utils.redmine_ticket_number_validator(self.ticket_number.text())
@@ -181,10 +187,10 @@ class NewTaskDialog(QDialog):
                 self.show_error(error_msg, self.ticket_number)
                 return
             else:
-                self.show_valid(self.ticket_number)
+                self.clear_error(self.ticket_number)
 
         self.name.setPlainText(self.name.toPlainText().strip().replace('\n', ' ').replace('\t', ''))
-        self.ticket_number.setText('#' + self.ticket_number.text().strip(' \n\t#'))
+        self.ticket_number.setText(self.ticket_number.text().strip(' \n\t#'))
 
         self.accept()
 
@@ -193,10 +199,8 @@ class NewTaskDialog(QDialog):
         widget.setStyleSheet('background-color: #fa7161')
         self.error_label.setText(message)
 
-    def show_valid(self, widget):
-        widget.setStyleSheet('background-color: #80fa61')
-
-
+    def clear_error(self, widget):
+        widget.setStyleSheet('')
 
 
 class HelpDialog(QDialog):
@@ -279,8 +283,11 @@ class ChangelogDialog(QDialog):
             <br>
             <b>Release 0.4.0</b>
             <ul>
+                <li>Redmine ticket title is now visible in the taskbox</li>
                 <li>Invalid data for the task name or ticket number is not ignored anymore</li>
                 <li>Logs are now saved also on /tmp/fstk.log</li>
+                <li>Configuration page is now available</li>
+                <li>Minor graphical and usage improvements</li>
             </ul><br>
             <b>Release 0.3.0</b>
             <ul>
@@ -368,3 +375,111 @@ class StatisticsDialog(QDialog):
 
         self.setLayout(self.box)
         self.adjustSize()
+
+
+class ConfigurationDialog(QDialog):
+
+    def __init__(self, current_config):
+        QDialog.__init__(self)
+
+        self.setWindowTitle('Configuration')
+        self.setStyleSheet(default_window_style + '''
+            QDialog { background-color: #232931 }
+            QLineEdit { background-color: #444f5d; }
+            QPushButton, QLabel { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
+            QPushButton:disabled, QLabel:disabled, QCheckBox:disabled { color: grey; }
+            QLineEdit:disabled { background-color: #323942; color: grey; }
+        ''')
+
+        self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
+
+        # QWidget Layout
+        self.box = QGridLayout()
+
+        self.enable_redmine_integration = QCheckBox("Enable redmine integration")
+        self.enable_redmine_integration.stateChanged.connect(self.update_redmine_ctrls_status)
+        self.box.addWidget(self.enable_redmine_integration, 0, 0, 1, 2)
+
+        self.label_redmine_hosts = QLabel('Redmine host:')
+        self.box.addWidget(self.label_redmine_hosts, 1, 0)
+        self.label_redmine_apikey = QLabel('Redmine api key:')
+        self.box.addWidget(self.label_redmine_apikey, 2, 0)
+        self.label_redmine_toobtainkey = QLabel('To obtain the api key visit the page <b>/my/account</b> of your installation')
+        self.label_redmine_toobtainkey.setTextFormat(Qt.RichText)
+        self.box.addWidget(self.label_redmine_toobtainkey, 3, 0, 1, 2)
+
+        self.redmine_host = QLineEdit(current_config['redmine']['host'])
+
+        self.redmine_host.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.redmine_host.setMinimumWidth(400)
+        self.box.addWidget(self.redmine_host, 1, 1)
+
+        self.redmine_api_key = QLineEdit(current_config['redmine']['apikey'])
+        self.box.addWidget(self.redmine_api_key, 2, 1)
+
+        self.use_ticket_as_task_name = QCheckBox("Use redmine ticket name as task name")
+        self.use_ticket_as_task_name.setChecked(current_config['redmine']['task_name_from_ticket'])
+        self.box.addWidget(self.use_ticket_as_task_name, 4, 0, 1, 2)
+
+        self.enable_redmine_integration.setChecked(current_config['redmine']['enabled'])
+        self.update_redmine_ctrls_status(self.enable_redmine_integration.checkState())
+
+        self.error_label = QLabel()
+        self.error_label.setStyleSheet('color: #fa7161')
+        self.box.addWidget(self.error_label, 5, 0, 1, 2)
+
+        self.ok_button = QPushButton('Save')
+        self.ok_button.clicked.connect(self.check_data)
+
+        self.box.addWidget(self.ok_button, 6, 0, 1, 2, alignment=Qt.AlignCenter)
+
+        self.ok_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
+        self.setLayout(self.box)
+        self.adjustSize()
+
+    def check_data(self):
+
+        # * Opzioni config:
+        #     * Enable redmine integration
+        #     * Redmine host (verifica con regex)
+        #     * Redmine api key (verifica con regex)
+        #     * Usa nome ticket redmine come nome task
+        # se è abilitata questa funzione dobbiamo effettuare la validazione dei suoi dati
+        if self.enable_redmine_integration.isChecked():
+
+            if not re.match(r'https?://[-a-zA-Z0-9:._]+', self.redmine_host.text().strip()):
+                self.show_error('The redmine host address is not valid. Example: https://red.host.com:4000', self.redmine_host)
+                return
+            else:
+                self.clear_error(self.redmine_host)
+
+            if not re.match(r'[a-z0-9]{40}', self.redmine_api_key.text().strip()):
+                self.show_error('The redmine apikey is not valid. Example: 3131c6e3923adf52e25fa5b721254d02e6483954', self.redmine_api_key)
+                return
+            else:
+                self.clear_error(self.redmine_api_key)
+
+        self.result = {
+           'redmine' : {
+               'enabled': self.enable_redmine_integration.isChecked(),
+               'host': self.redmine_host.text().strip(' \r\n\t/'),
+               'apikey': self.redmine_api_key.text().strip(),
+               'task_name_from_ticket': self.use_ticket_as_task_name.isChecked()
+           }
+        }
+
+        self.accept()
+
+    def show_error(self, message, widget):
+        widget.setStyleSheet('background-color: #fa7161')
+        self.error_label.setText(message)
+
+    def clear_error(self, widget):
+        widget.setStyleSheet('')
+
+    def update_redmine_ctrls_status(self, state):
+        widgets = [self.label_redmine_hosts, self.label_redmine_apikey, self.label_redmine_toobtainkey, self.redmine_host, self.redmine_api_key, self.use_ticket_as_task_name]
+        for w in widgets:
+            w.setEnabled(state == Qt.Checked)
+

@@ -5,13 +5,14 @@ default_window_style = '''
         QPushButton { background-color: #444f5d; border: 1px solid #232931 } 
         QPushButton:hover { background-color: #585c65 }
         
-        QPushButton[counting=true], QLabel[counting=true] { color: #6e6e6e } 
-        QPushButton[counting=false], QLabel[counting=false] { color: #4ecca3 }
-
+        QPushButton[counting=false], QLabel[counting=false] { color: #6e6e6e }
+        QLabel[invalid=true] { color: #fa7161 }
 '''
 
-config_file_version = 2
-tasks_file_version = 2
+config = None
+
+config_file_version = 3
+tasks_file_version = 3
 
 default_config = {
     'window': {
@@ -28,11 +29,19 @@ default_config = {
     'stats': {
         'total_created_tasks': 0,
     },
+    'options': {
+        'redmine' : {
+               'enabled': False,
+               'host': '',
+               'apikey': '',
+               'task_name_from_ticket': False
+       },
+    },
     'version': config_file_version
 }
 
 default_tasks = {
-    'current_tasks': { '0': {'name': 'Task di esempio', 'ticket': '1234', 'elapsed_time': 4632, 'color_group': 'Blue'} },
+    'current_tasks': { '0': {'name': 'Task di esempio', 'ticket': '1234', 'elapsed_time': 4632, 'color_group': 'Blue', 'ticket_title': ''} },
     'version': tasks_file_version
 }
 

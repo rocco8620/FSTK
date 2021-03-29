@@ -77,10 +77,11 @@ app = QApplication(sys.argv)
 app.setStyleSheet(Globals.default_window_style + '''
     QMenuBar, QMenu { background-color: #444f5d } 
     QMenu::item:selected { background-color: #232931 } 
+    QMenu::item:disabled { color: #6e6e6e } 
 
     QListWidget { background-color: #232931; } 
     QListWidget::item, QSizeGrip { background-color: #353d48; } 
-    QListWidget::item:selected { background-color: #5d54a4; } 
+    QListWidget::item:selected { background-color: #4d1f48; } 
 
     QStatusBar { background-color: #444f5d } 
     QScrollBar {

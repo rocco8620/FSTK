@@ -12,10 +12,10 @@ from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMain
                                QSizePolicy, QAbstractItemView, QListView, QMenu, QStyleOption)
 
 from .Dialogs import (AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog,
-                      StatisticsDialog)
+                      StatisticsDialog, ConfigurationDialog)
 
 from .SaveFiles import SaveFile
-from . import Globals, Utils, Palette
+from . import Globals, Utils, Palette, Redmine
 from . import Updater
 
 
@@ -60,18 +60,24 @@ class RowElement(QWidget):
         self.box.addWidget(self.name, 0, 0)
         self.box.setColumnStretch(0, 7)
 
-        self.redmine_elements = QHBoxLayout()
+        self.redmine_elements = QGridLayout()
 
         self.ticket_number = QPushButton(options['ticket_number'])
         self.ticket_number.setStyleSheet('border: 0; background-color: transparent')
         self.ticket_number.clicked.connect(self.edit_ticket_number)
-        self.redmine_elements.addWidget(self.ticket_number)
+        self.redmine_elements.addWidget(self.ticket_number, 0, 0)
+
+        self.ticket_title = QLabel(options.get('ticket_title', ''))
+        self.ticket_title.setWordWrap(True)
+        self.ticket_title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.ticket_title.setFont(QFont('Mono', 9, italic=True))
+        self.ticket_title.setStyleSheet('QLabel[counting=true] { color: #61ccfa; } QLabel[invalid=true] { color: #fa7161; } QLabel[counting=false] { color: #6e6e6e; }')
+        self.redmine_elements.addWidget(self.ticket_title, 0, 1)
+        self.redmine_elements.setColumnStretch(1, 7)
 
         # self.save_to_redmine = QPushButton('Save')
         # self.save_to_redmine.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
         # self.redmine_elements.addWidget(self.save_to_redmine, alignment=Qt.AlignLeft)
-
-        self.redmine_elements.addStretch()
 
         self.box.addLayout(self.redmine_elements, 1, 0)
 
@@ -211,18 +217,23 @@ class RowElement(QWidget):
 
         self.spent_time.setText(Utils.format_time(self.__seconds))
 
-        elements = [self.spent_time, self.add_time, self.sub_time, self.del_record, self.clear_record_time, self.ticket_number, self.name]
+        elements = [self.spent_time, self.add_time, self.sub_time, self.del_record, self.clear_record_time, self.ticket_number, self.name, self.ticket_title]
         # valuta se è possibile che sia avvenuta un condizione che provocherebbe il cambio di colore degli elementi
         # se non può essere avvenuta skippa il codice di set dello style
         if (old_seconds == 0 and self.__seconds != 0) or (old_seconds != 0 and self.__seconds == 0) or (old_seconds == self.__seconds == 0):
             for x in elements:
-                x.setProperty('counting', self.__seconds == 0)
-                x.setStyle(x.style())
+                Utils.set_prop_and_refresh(x, 'counting', self.__seconds != 0)
 
         self.__main_widget.update_total_time()
 
     def to_dict(self):
-        return {'name': self.name.text(), 'ticket': self.ticket_number.text().strip('#'), 'elapsed_time': self.__seconds, 'color_group': self.__color_group}
+        return {
+            'name': self.name.text(),
+            'ticket': self.ticket_number.text().strip('#'),
+            'elapsed_time': self.__seconds,
+            'color_group': self.__color_group,
+            'ticket_title': self.ticket_title.text()
+        }
 
     # funzione per la formattazione degli elementi grafici
     @staticmethod
@@ -258,6 +269,19 @@ class ListWidget(QListWidget):
                 self.itemWidget(s).del_task()
         else:
             super().keyPressEvent(event)
+
+
+class UpdateTicketTitleWorker(QThread):
+    finished = Signal(dict)
+
+    def __init__(self, ticket_numbers):
+        QThread.__init__(self)
+        self.ticket_numbers = ticket_numbers
+
+    def run(self):
+           result = Redmine.get_tickets_title(self.ticket_numbers)
+           self.finished.emit(result)
+           return
 
 
 class MainWidget(QWidget):
@@ -302,20 +326,48 @@ class MainWidget(QWidget):
         name = dialog.name.toPlainText()
         ticket_number = dialog.ticket_number.text()
 
-        self.insert_task_in_list(name, ticket_number)
-        self.main_window.config['stats']['total_created_tasks'] += 1
+        row = self.insert_task_in_list(name, '#' + ticket_number)
+        Globals.config['stats']['total_created_tasks'] += 1
 
-    def insert_task_in_list(self, name, ticket_number='', elapsed_time=0, color_group='No color'):
+        # se abilitato redmine lancio un thread per ottenere il titolo del ticket
+        if Globals.config['options']['redmine']['enabled']:
+            row.ticket_title.setText('...')
+
+            def func(result):
+                if result is not None:
+                    text = result.get(ticket_number)
+                    if text is not None:
+                        row.ticket_title.setText(text)
+                        Utils.set_prop_and_refresh(row.ticket_title, 'invalid', False)
+                    else:
+                        row.ticket_title.setText('Unable to find the specified ticket')
+                        Utils.set_prop_and_refresh(row.ticket_title, 'invalid', True)
+                        logging.debug('Redmine api call returned dict not containing ticket title')
+                else:
+                    Utils.set_prop_and_refresh(row.ticket_title, 'invalid', True)
+                    logging.debug('Redmine api call returned empty dict searching for ticket title')
+
+            Utils.launch_thread(UpdateTicketTitleWorker, [ticket_number], [('finished', func)])
+
+    def insert_task_in_list(self, name, ticket_number='', elapsed_time=0, color_group='No color', ticket_title=''):
         # Add to list a new item (item is simply an entry in your list)
         item = QListWidgetItem()
 
         # Instanciate a custom widget
-        row = RowElement({'name': name, 'ticket_number': ticket_number, 'elapsed_time': elapsed_time, 'color_group': color_group}, self, self.task_list, item)
+        row = RowElement({
+            'name': name,
+            'ticket_number': ticket_number,
+            'elapsed_time': elapsed_time,
+            'color_group': color_group,
+            'ticket_title': ticket_title,
+        }, self, self.task_list, item)
         item.setSizeHint(row.minimumSizeHint())
 
         # Associate the custom widget to the list entry
         self.task_list.addItem(item)
         self.task_list.setItemWidget(item, row)
+
+        return row
 
     def count_time(self):
         for s in self.task_list.selectedItems():
@@ -364,8 +416,6 @@ class CheckUpdateWorker(QThread):
 class MainWindow(QMainWindow):
     # dizionario che contiene le informaizoni riguardo ai tempi tracciati
     tasks = None
-    # dizionario che contiene le configurazioni attuali
-    config = None
     # timer che gestisce l'autosave
     tasks_autosave_timer = None
     # thread che cerca aggiornamenti per il software in background
@@ -376,12 +426,19 @@ class MainWindow(QMainWindow):
 
         self.widget = widget
         self.widget.main_window = self
-        self.load_ui()
 
         self.oldPos = self.pos()
 
         # carica il file di configurazione e applica alla finestra/applicazione le config salvate
         self.load_config()
+        # carica gli elementi dell'interfaccia grafica
+        self.load_ui()
+
+        # sposta la finestra nell'ultima posizone in cui si trovava prima di chiudere
+        self.move(Globals.config['window']['x'], Globals.config['window']['y'])
+        self.resize(Globals.config['window']['w'], Globals.config['window']['h'])
+        self.setWindowFlag(Qt.WindowStaysOnTopHint, Globals.config['window']['always_on_top'])
+
         # carica il file dei task esistenti e li visualizza nell'interfaccia grafica
         self.load_tasks()
 
@@ -399,7 +456,7 @@ class MainWindow(QMainWindow):
 
         # questa deve essere l'ultima operazione
         # imposto la prima esecuzione a falso
-        self.config['first_run'] = False
+        Globals.config['first_run'] = False
 
     def load_ui(self):
         self.setWindowTitle("Fast Switch Time Keeper")
@@ -413,6 +470,9 @@ class MainWindow(QMainWindow):
         # always_on_top_action = options_menu.addAction("Always on top")
         # always_on_top_action.triggered.connect(self.toggle_window_stay_on_top)
 
+        configuration_action = options_menu.addAction("Configuration")
+        configuration_action.triggered.connect(self.edit_configuration)
+
         remove_desktop_shortcut_action = options_menu.addAction("Remove finder shortcut")
         remove_desktop_shortcut_action.triggered.connect(self.remove_desktop_shortcut)
 
@@ -422,9 +482,16 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.exit_app)
         options_menu.addAction(exit_action)
 
+        actions_menu = menu_bar.addMenu("Actions")
+
+        refresh_titles_action = actions_menu.addAction("Refresh tickets titles")
+        refresh_titles_action.triggered.connect(lambda: self.refresh_ticket_titles)
+
+        refresh_titles_action.setEnabled(Globals.config['options']['redmine']['enabled'])
+
         statistics_menu = menu_bar.addMenu("Statistics")
         usage_action = statistics_menu.addAction("Usage")
-        usage_action.triggered.connect(lambda: StatisticsDialog(self.config['stats']['total_created_tasks']).exec())
+        usage_action.triggered.connect(lambda: StatisticsDialog(Globals.config['stats']['total_created_tasks']).exec())
 
         other_menu = menu_bar.addMenu("Other")
         help_action = other_menu.addAction("Help")
@@ -467,18 +534,15 @@ class MainWindow(QMainWindow):
 
     def load_config(self):
         # apre i file di salvataggio delle config
-        self.config = SaveFile(os.path.join(Globals.config_folder, Globals.config_file_name), filetype='config', default=Globals.default_config)
-        # sposta la finestra nell'ultima posizone in cui si trovava prima di chiudere
-        self.move(self.config['window']['x'], self.config['window']['y'])
-        self.resize(self.config['window']['w'], self.config['window']['h'])
-        self.setWindowFlag(Qt.WindowStaysOnTopHint, self.config['window']['always_on_top'])
+        Globals.config = SaveFile(os.path.join(Globals.config_folder, Globals.config_file_name), filetype='config', default=Globals.default_config)
 
     def load_tasks(self):
         self.tasks = SaveFile(os.path.join(Globals.config_folder, Globals.tasks_file_name), filetype='tasks', default=Globals.default_tasks)
 
         # carico i task dal file di salvataggio all'interfaccia utente
         for t in self.tasks['current_tasks'].values():
-            self.widget.insert_task_in_list(t['name'], '#' + t['ticket'], t['elapsed_time'], t['color_group'])
+
+            self.widget.insert_task_in_list(t['name'], '#' + t['ticket'], t['elapsed_time'], t['color_group'], t['ticket_title'])
 
         self.widget.update_total_time()
 
@@ -515,7 +579,7 @@ class MainWindow(QMainWindow):
                         if success_install:
                             InformationDialog('Software update', 'Update completed! FSTK will now restart').exec()
                             # imposto la flag first run per mostrare il changelog al riavvio
-                            self.config['first_run'] = True
+                            Globals.config['first_run'] = True
                             # salvo lo stato dei contatori e delle configurazioni
                             self.closeEvent(None)
                             # riavvio il processo
@@ -532,11 +596,7 @@ class MainWindow(QMainWindow):
 
         # ----------------------------
 
-        self.update_thread = CheckUpdateWorker()
-        #QCoreApplication.processEvents()
-        self.update_thread.finished.connect(func)
-        self.update_thread.finished.connect(self.update_thread.deleteLater)
-        self.update_thread.start()
+        Utils.launch_thread(CheckUpdateWorker, None, [('finished', func)])
 
     def install_desktop_shortcut(self):
         desktop_file_path = os.path.join(Globals.desktop_folder, Globals.desktop_file_name)
@@ -572,8 +632,17 @@ class MainWindow(QMainWindow):
             InformationDialog('Desktop Shortcut', 'Desktop shortcut not present.').exec()
 
     def show_changelog_if_needed(self):
-        if self.config['first_run']:
+        if Globals.config['first_run']:
             ChangelogDialog().exec()
+
+    def edit_configuration(self):
+        dialog = ConfigurationDialog(Globals.config['options'])
+
+        if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
+            return
+
+        Globals.config['options'] = dialog.result
+
 
     # @Slot()
     # def toggle_window_stay_on_top(self):
@@ -596,15 +665,15 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, _):
         # aggiorna il dizionario delle config
-        self.config['window']['x'] = self.x()
-        self.config['window']['y'] = self.y()
-        self.config['window']['h'] = self.height()
-        self.config['window']['w'] = self.width()
-        # self.config['window']['always_on_top'] = bool(self.windowFlags() & Qt.WindowStaysOnTopHint)
-        self.config['window']['always_on_top'] = True
+        Globals.config['window']['x'] = self.x()
+        Globals.config['window']['y'] = self.y()
+        Globals.config['window']['h'] = self.height()
+        Globals.config['window']['w'] = self.width()
+        # Globals.config['window']['always_on_top'] = bool(self.windowFlags() & Qt.WindowStaysOnTopHint)
+        Globals.config['window']['always_on_top'] = True
 
         # salva su disco le config e tempi/task
-        self.config.save()
+        Globals.config.save()
 
         self.flush_tasks_to_savefile()
 

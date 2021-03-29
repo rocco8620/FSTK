@@ -41,7 +41,7 @@ class Migration(object):
 class ConfigMigrations(Migration):
 
     def migrate(self, from_, to, d):
-        return super(ConfigMigrations, self)._migrate('config', from_, to, d)
+        return super()._migrate('config', from_, to, d)
 
     def _migrate_1_2(self, d):
         d['window']['w'] = 460
@@ -51,14 +51,31 @@ class ConfigMigrations(Migration):
         }
         return True, None
 
+    def _migrate_2_3(self, d):
+        d['options'] = {
+            'redmine': {
+                'enabled': False,
+                'host': '',
+                'apikey': '',
+                'task_name_from_ticket': False
+            }
+        }
+        return True, None
+
 
 class TasksMigrations(Migration):
 
     def migrate(self, from_, to, d):
-        return super(TasksMigrations, self)._migrate('tasks', from_, to, d)
+        return super()._migrate('tasks', from_, to, d)
 
     def _migrate_1_2(self, d):
         for t in d['current_tasks']:
             d['current_tasks'][t]['color_group'] = 'No color'
+
+        return True, None
+
+    def _migrate_2_3(self, d):
+        for t in d['current_tasks']:
+            d['current_tasks'][t]['ticket_title'] = ''
 
         return True, None
