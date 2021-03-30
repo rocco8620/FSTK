@@ -339,7 +339,7 @@ class ChangelogDialog(QDialog):
 
 class StatisticsDialog(QDialog):
 
-    def __init__(self, n_tasks):
+    def __init__(self):
         QDialog.__init__(self)
 
         self.setWindowTitle('Statistics')
@@ -356,7 +356,7 @@ class StatisticsDialog(QDialog):
             <ul>
                 <li>Total number of task created: <b>{}<b></li>
             </ul>
-        '''.format(n_tasks)
+        '''.format(Globals.config['stats']['total_created_tasks'])
 
         # QWidget Layout
         self.box = QGridLayout()

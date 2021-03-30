@@ -67,10 +67,12 @@ class RowElement(QWidget):
         self.ticket_number.clicked.connect(self.edit_ticket_number)
         self.redmine_elements.addWidget(self.ticket_number, 0, 0)
 
-        self.ticket_title = QLabel(options.get('ticket_title', ''))
+        title = options.get('ticket_title')
+        self.ticket_title = QLabel(title if title is not None else 'Unable to find the specified ticket')
         self.ticket_title.setWordWrap(True)
         self.ticket_title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         self.ticket_title.setFont(QFont('Mono', 9, italic=True))
+        self.ticket_title.setProperty('invalid', title is None)
         self.ticket_title.setStyleSheet('QLabel[counting=true] { color: #61ccfa; } QLabel[invalid=true] { color: #fa7161; } QLabel[counting=false] { color: #6e6e6e; }')
         self.redmine_elements.addWidget(self.ticket_title, 0, 1)
         self.redmine_elements.setColumnStretch(1, 7)
@@ -232,8 +234,9 @@ class RowElement(QWidget):
             'ticket': self.ticket_number.text().strip('#'),
             'elapsed_time': self.__seconds,
             'color_group': self.__color_group,
-            'ticket_title': self.ticket_title.text()
+            'ticket_title': None if self.ticket_title.property('invalid') else self.ticket_title.text(),
         }
+
 
     # funzione per la formattazione degli elementi grafici
     @staticmethod
@@ -281,7 +284,6 @@ class UpdateTicketTitleWorker(QThread):
     def run(self):
            result = Redmine.get_tickets_title(self.ticket_numbers)
            self.finished.emit(result)
-           return
 
 
 class MainWidget(QWidget):
@@ -485,13 +487,13 @@ class MainWindow(QMainWindow):
         actions_menu = menu_bar.addMenu("Actions")
 
         refresh_titles_action = actions_menu.addAction("Refresh tickets titles")
-        refresh_titles_action.triggered.connect(lambda: self.refresh_ticket_titles)
+        refresh_titles_action.triggered.connect(self.refresh_ticket_titles)
 
         refresh_titles_action.setEnabled(Globals.config['options']['redmine']['enabled'])
 
         statistics_menu = menu_bar.addMenu("Statistics")
         usage_action = statistics_menu.addAction("Usage")
-        usage_action.triggered.connect(lambda: StatisticsDialog(Globals.config['stats']['total_created_tasks']).exec())
+        usage_action.triggered.connect(lambda: StatisticsDialog().exec())
 
         other_menu = menu_bar.addMenu("Other")
         help_action = other_menu.addAction("Help")
@@ -542,7 +544,11 @@ class MainWindow(QMainWindow):
         # carico i task dal file di salvataggio all'interfaccia utente
         for t in self.tasks['current_tasks'].values():
 
-            self.widget.insert_task_in_list(t['name'], '#' + t['ticket'], t['elapsed_time'], t['color_group'], t['ticket_title'])
+            self.widget.insert_task_in_list(t['name'],
+                                            '#' + t['ticket'],
+                                            t['elapsed_time'],
+                                            t['color_group'],
+                                            t['ticket_title'])
 
         self.widget.update_total_time()
 
@@ -642,6 +648,37 @@ class MainWindow(QMainWindow):
             return
 
         Globals.config['options'] = dialog.result
+
+    def refresh_ticket_titles(self):
+        tickets = []
+        for i in range(self.widget.task_list.count()):
+            t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
+            # solo se il task ha un ticket number
+            if t.ticket_number.text().strip('# ') != '':
+                tickets.append(t.ticket_number.text().strip('# '))
+                t.ticket_title.setText('...')
+                #Utils.set_prop_and_refresh(t.ticket_title, 'invalid')
+
+        def func(result):
+            if result is not None:
+                for i in range(self.widget.task_list.count()):
+                    t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
+                    # solo se il task ha un ticket number
+                    if t.ticket_number.text().strip('# ') != '':
+                        text = result.get(t.ticket_number.text().strip('# '))
+                        if text is not None:
+                            t.ticket_title.setText(text)
+                            Utils.set_prop_and_refresh(t.ticket_title, 'invalid', False)
+                        else:
+                            t.ticket_title.setText('Unable to find the specified ticket')
+                            Utils.set_prop_and_refresh(t.ticket_title, 'invalid', True)
+            else:
+                logging.debug('Redmine api call returned empty dict searching for ticket title')
+
+
+        Utils.launch_thread(UpdateTicketTitleWorker, [tickets], [('finished', func)])
+
+
 
 
     # @Slot()

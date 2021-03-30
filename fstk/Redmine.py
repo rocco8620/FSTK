@@ -33,6 +33,8 @@ def get_tickets_title(numbers):
     if not isinstance(numbers, list):
         numbers = [numbers]
 
+    numbers = list(set(numbers))
+
     numbers = [ str(n) for n in numbers ]
 
     succes, text = request('GET', '/issues.json', params={'issue_id': ','.join(numbers)})
