@@ -1,3 +1,5 @@
+from functools import reduce
+
 try:
     import importlib.resources as pkg_resources
 except ImportError:
@@ -71,3 +73,12 @@ def launch_thread(thread_class, params, signals_handlers):
 def set_prop_and_refresh(widget, prop, value):
     widget.setProperty(prop, value)
     widget.setStyle(widget.style())
+
+
+def is_property_different(d1, d2, property):
+    # scorro i dizionari
+    for key in property:
+        d1 = d1[key]
+        d2 = d2[key]
+
+    return d1 != d2

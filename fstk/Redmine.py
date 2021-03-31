@@ -6,7 +6,7 @@ import requests
 from fstk import Globals
 
 
-def request(method, path, params=None):
+def request(method, path, params=None, timeout=60):
     if params is None:
         params = {}
 
@@ -14,9 +14,11 @@ def request(method, path, params=None):
     url = Globals.config['options']['redmine']['host'] + path
     logging.debug('Redmine call {} {} {}'.format(method, url, params))
     try:
-        resp = requests.request(method, url, headers=headers, params=params)
+        resp = requests.request(method, url, headers=headers, params=params, timeout=timeout)
         if resp.status_code != 200:
+            logging.info('The status code recevied was {}, expected 200'.format(resp.status_code))
             return False, 'The status code recevied was {}, expected 200'.format(resp.status_code)
+
         return True, resp.text
 
     except requests.exceptions.ConnectionError as e:
@@ -70,3 +72,7 @@ def get_tickets_title(numbers):
     #              "start_date": "2021-03-26", "due_date": "2021-04-23", "done_ratio": 0, "estimated_hours": 8.0,
     #              "created_on": "2021-03-26T09:29:13Z", "updated_on": "2021-03-26T09:32:10Z"}], "total_count": 2,
     #  "offset": 0, "limit": 25}
+
+def are_redmine_creds_valid():
+    succes, _ = request('GET', '/issues.json', params={'limit': 1})
+    return succes

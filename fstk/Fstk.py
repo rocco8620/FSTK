@@ -9,7 +9,7 @@ from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QThread
 from PySide2.QtGui import QFont, QDrag, QPixmap, QPainter, QCursor, QColor, QPalette
 from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QWidget,
                                QListWidget, QListWidgetItem, QGridLayout,
-                               QSizePolicy, QAbstractItemView, QListView, QMenu, QStyleOption)
+                               QSizePolicy, QAbstractItemView, QListView, QMenu, QStyleOption, QLayout)
 
 from .Dialogs import (AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog,
                       StatisticsDialog, ConfigurationDialog)
@@ -70,7 +70,7 @@ class RowElement(QWidget):
         title = options.get('ticket_title')
         self.ticket_title = QLabel(title if title is not None else 'Unable to find the specified ticket')
         self.ticket_title.setWordWrap(True)
-        self.ticket_title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.ticket_title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
         self.ticket_title.setFont(QFont('Mono', 9, italic=True))
         self.ticket_title.setProperty('invalid', title is None)
         self.ticket_title.setStyleSheet('QLabel[counting=true] { color: #61ccfa; } QLabel[invalid=true] { color: #fa7161; } QLabel[counting=false] { color: #6e6e6e; }')
@@ -166,6 +166,9 @@ class RowElement(QWidget):
             return
 
         self.ticket_number.setText('#' + dialog.line.text().strip('# '))
+
+        if Globals.config['options']['redmine']['enabled']:
+            self.__main_widget.update_ticket_title(self.ticket_title, dialog.line.text().strip('# '))
 
     @Slot()
     def edit_name(self):
@@ -285,6 +288,12 @@ class UpdateTicketTitleWorker(QThread):
            result = Redmine.get_tickets_title(self.ticket_numbers)
            self.finished.emit(result)
 
+class CheckRedmineCredsWorker(QThread):
+    finished = Signal(bool)
+
+    def run(self):
+           result = Redmine.are_redmine_creds_valid()
+           self.finished.emit(result)
 
 class MainWidget(QWidget):
 
@@ -333,23 +342,27 @@ class MainWidget(QWidget):
 
         # se abilitato redmine lancio un thread per ottenere il titolo del ticket
         if Globals.config['options']['redmine']['enabled']:
-            row.ticket_title.setText('...')
+            self.update_ticket_title(row.ticket_title, ticket_number)
 
-            def func(result):
-                if result is not None:
-                    text = result.get(ticket_number)
-                    if text is not None:
-                        row.ticket_title.setText(text)
-                        Utils.set_prop_and_refresh(row.ticket_title, 'invalid', False)
-                    else:
-                        row.ticket_title.setText('Unable to find the specified ticket')
-                        Utils.set_prop_and_refresh(row.ticket_title, 'invalid', True)
-                        logging.debug('Redmine api call returned dict not containing ticket title')
+    def update_ticket_title(self, title_widget, ticket_number):
+        title_widget.setText('...')
+
+        def func(result):
+            if result is not None:
+                text = result.get(ticket_number)
+                if text is not None:
+                    title_widget.setText(text)
+                    Utils.set_prop_and_refresh(title_widget, 'invalid', False)
                 else:
-                    Utils.set_prop_and_refresh(row.ticket_title, 'invalid', True)
-                    logging.debug('Redmine api call returned empty dict searching for ticket title')
+                    title_widget.setText('Unable to find the specified ticket')
+                    Utils.set_prop_and_refresh(title_widget, 'invalid', True)
+                    logging.debug('Redmine api call returned dict not containing ticket title')
+            else:
+                Utils.set_prop_and_refresh(title_widget, 'invalid', True)
+                logging.warning('Redmine api call returned empty dict searching for ticket title')
 
-            Utils.launch_thread(UpdateTicketTitleWorker, [ticket_number], [('finished', func)])
+        Utils.launch_thread(UpdateTicketTitleWorker, [ticket_number], [('finished', func)])
+
 
     def insert_task_in_list(self, name, ticket_number='', elapsed_time=0, color_group='No color', ticket_title=''):
         # Add to list a new item (item is simply an entry in your list)
@@ -486,10 +499,10 @@ class MainWindow(QMainWindow):
 
         actions_menu = menu_bar.addMenu("Actions")
 
-        refresh_titles_action = actions_menu.addAction("Refresh tickets titles")
-        refresh_titles_action.triggered.connect(self.refresh_ticket_titles)
+        self.refresh_titles_action = actions_menu.addAction("Refresh tickets titles")
+        self.refresh_titles_action.triggered.connect(self.refresh_ticket_titles)
 
-        refresh_titles_action.setEnabled(Globals.config['options']['redmine']['enabled'])
+        self.refresh_titles_action.setEnabled(Globals.config['options']['redmine']['enabled'])
 
         statistics_menu = menu_bar.addMenu("Statistics")
         usage_action = statistics_menu.addAction("Usage")
@@ -647,7 +660,33 @@ class MainWindow(QMainWindow):
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 
-        Globals.config['options'] = dialog.result
+        new_conf = dialog.result
+
+        # applico modifiche/azioni varie in seguito alle possibili modifiche della conf
+
+        # se è stato cambiato lo stato di questa opzione effettuo delle operazioni, altrimenti no
+        if Utils.is_property_different(Globals.config['options'], new_conf, property=('redmine', 'enabled')):
+            # attivo/disattivo delle opzioni
+            self.refresh_titles_action.setEnabled(new_conf['redmine']['enabled'])
+
+            if new_conf['redmine']['enabled']:
+                # aggiorno i titoli dei ticket
+                self.refresh_ticket_titles()
+            else:
+                # pulisco i titoli dei ticket
+                self.clear_ticket_titles()
+
+        # aggiorno le conf globali con le nuove
+        Globals.config['options'] = new_conf
+
+        if Globals.config['options']['redmine']['enabled']:
+
+            def func(result):
+                if not result:
+                    InformationDialog('Warning', 'The redmine api key or host are invalid.').exec()
+
+            Utils.launch_thread(CheckRedmineCredsWorker, None, signals_handlers=[('finished', func)])
+
 
     def refresh_ticket_titles(self):
         tickets = []
@@ -673,12 +712,17 @@ class MainWindow(QMainWindow):
                             t.ticket_title.setText('Unable to find the specified ticket')
                             Utils.set_prop_and_refresh(t.ticket_title, 'invalid', True)
             else:
-                logging.debug('Redmine api call returned empty dict searching for ticket title')
+                logging.warning('Redmine api call returned empty dict searching for ticket title')
 
 
         Utils.launch_thread(UpdateTicketTitleWorker, [tickets], [('finished', func)])
 
 
+    def clear_ticket_titles(self):
+        for i in range(self.widget.task_list.count()):
+            t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
+            t.ticket_title.setText('')
+            t.ticket_title.setProperty('invalid', False)
 
 
     # @Slot()

@@ -209,11 +209,13 @@ class HelpDialog(QDialog):
         QDialog.__init__(self)
 
         self.setWindowTitle('Help')
+        self.resize(700, 600)
         self.setStyleSheet(default_window_style + '''
-            QDialog { background-color: #232931 }
-            QLineEdit { background-color: #444f5d; }
-            QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
-        ''')
+                    QDialog { background-color: #232931 }
+                    QLineEdit { background-color: #444f5d; }
+                    QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
+                    QTextEdit { background-color: #444f5d }
+                ''')
 
         self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
 
@@ -222,32 +224,33 @@ class HelpDialog(QDialog):
             <br>
             <b>Shortcuts</b>
             <ul>
-                <li>Ctrl + Q</b>: Exits the software</li>
-                <li>Ctrl + H</b>: Opens this help page</li>
+                <li><b>Ctrl + Q</b>: Exits the software.</li>
+                <li><b>Ctrl + H</b>: Opens this help page.</li>
             </ul><br>
             <b>Tips</b>
             <ul>
-                <li>To edit the redmine ticket number on an entry, click on it</li>
-                <li>To reorder the tasks in the list, drag & drop them</li>
-                <li>Assign a color to a task right click on it</li>
+                <li>To edit the redmine ticket number on an entry, click on it.</li>
+                <li>To reorder the tasks in the list, drag & drop them.</li>
+                <li>To assign a color to a task right click on it.</li>
+                <li>To obtain the redmine api key, visit the page <b>/my/account</b> on your redmine installation. Use the menu on the right to generate/see it.</li>
             </ul><br>
             <b>Info</b>
             <ul>
-                <li>The tasks and times are written to disk every minute, to prevent data loss</li>
-                <li>This software features an auto update function</li>
+                <li>The tasks and times are written to disk every minute, to prevent data loss.</li>
+                <li>This software features an auto update function.</li>
                 </li>Logs are saved on /tmp/fstk.log</li>
             </ul><br>
             <b>Gotchas</b>
             <ul>
-                <li>If the computer is put on standby for too much time, the time counter may stop counting</li>
+                <li>If the computer is put on standby for too much time, the time counter may stop counting.</li>
             </ul>
         '''.format(Globals.version)
 
         # QWidget Layout
         self.box = QGridLayout()
 
-        self.text = QLabel(help_text)
-        self.text.setTextFormat(Qt.RichText)
+        self.text = QTextEdit(help_text)
+        self.text.setReadOnly(True)
         self.box.addWidget(self.text, 0, 0)
 
         self.close_button = QPushButton('Close')
@@ -259,7 +262,7 @@ class HelpDialog(QDialog):
         self.close_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         self.setLayout(self.box)
-        self.adjustSize()
+
 
 
 class ChangelogDialog(QDialog):
@@ -404,7 +407,7 @@ class ConfigurationDialog(QDialog):
         self.box.addWidget(self.label_redmine_hosts, 1, 0)
         self.label_redmine_apikey = QLabel('Redmine api key:')
         self.box.addWidget(self.label_redmine_apikey, 2, 0)
-        self.label_redmine_toobtainkey = QLabel('To obtain the api key visit the page <b>/my/account</b> of your installation')
+        self.label_redmine_toobtainkey = QLabel('To obtain the api key visit <b>/my/account</b> of your installation. More on help page.')
         self.label_redmine_toobtainkey.setTextFormat(Qt.RichText)
         self.box.addWidget(self.label_redmine_toobtainkey, 3, 0, 1, 2)
 
@@ -417,9 +420,9 @@ class ConfigurationDialog(QDialog):
         self.redmine_api_key = QLineEdit(current_config['redmine']['apikey'])
         self.box.addWidget(self.redmine_api_key, 2, 1)
 
-        self.use_ticket_as_task_name = QCheckBox("Use redmine ticket name as task name")
-        self.use_ticket_as_task_name.setChecked(current_config['redmine']['task_name_from_ticket'])
-        self.box.addWidget(self.use_ticket_as_task_name, 4, 0, 1, 2)
+        #self.use_ticket_as_task_name = QCheckBox("Use redmine ticket name as task name")
+        #self.use_ticket_as_task_name.setChecked(current_config['redmine']['task_name_from_ticket'])
+        #self.box.addWidget(self.use_ticket_as_task_name, 4, 0, 1, 2)
 
         self.enable_redmine_integration.setChecked(current_config['redmine']['enabled'])
         self.update_redmine_ctrls_status(self.enable_redmine_integration.checkState())
@@ -465,7 +468,7 @@ class ConfigurationDialog(QDialog):
                'enabled': self.enable_redmine_integration.isChecked(),
                'host': self.redmine_host.text().strip(' \r\n\t/'),
                'apikey': self.redmine_api_key.text().strip(),
-               'task_name_from_ticket': self.use_ticket_as_task_name.isChecked()
+               'task_name_from_ticket': False, #self.use_ticket_as_task_name.isChecked()
            }
         }
 
@@ -479,7 +482,7 @@ class ConfigurationDialog(QDialog):
         widget.setStyleSheet('')
 
     def update_redmine_ctrls_status(self, state):
-        widgets = [self.label_redmine_hosts, self.label_redmine_apikey, self.label_redmine_toobtainkey, self.redmine_host, self.redmine_api_key, self.use_ticket_as_task_name]
+        widgets = [self.label_redmine_hosts, self.label_redmine_apikey, self.label_redmine_toobtainkey, self.redmine_host, self.redmine_api_key] #, self.use_ticket_as_task_name]
         for w in widgets:
             w.setEnabled(state == Qt.Checked)
 
