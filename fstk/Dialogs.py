@@ -284,6 +284,10 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.4.1</b>
+            <ul>
+                <li>Fix bug redmine ticket title search when no ticket number was provided</li>
+            </ul><br>
             <b>Release 0.4.0</b>
             <ul>
                 <li>Redmine ticket title is now visible in the taskbox</li>

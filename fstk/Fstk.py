@@ -341,7 +341,7 @@ class MainWidget(QWidget):
         Globals.config['stats']['total_created_tasks'] += 1
 
         # se abilitato redmine lancio un thread per ottenere il titolo del ticket
-        if Globals.config['options']['redmine']['enabled']:
+        if Globals.config['options']['redmine']['enabled'] and ticket_number != '':
             self.update_ticket_title(row.ticket_title, ticket_number)
 
     def update_ticket_title(self, title_widget, ticket_number):

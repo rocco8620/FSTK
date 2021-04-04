@@ -21,10 +21,10 @@ def install_package(package_name):
 
     if proc_handle.returncode == 0:
         logging.info('Pip update install completed successfully')
-        logging.debug('Pip update install output:\n'.format(stdout))
+        logging.debug('Pip update install output: "{}"'.format(stdout))
         return True, None
     else:
-        logging.error('An error occurred trying to install package update: pip exited with code {} and output:\n{}'.format(proc_handle.returncode, stdout))
+        logging.error('An error occurred trying to install package update: pip exited with code {} and output: "{}"'.format(proc_handle.returncode, stdout))
         return False, 'Unknow error, see standard output'
 
 

@@ -1,3 +1,4 @@
+import faulthandler
 import logging
 import os
 import sys
@@ -72,6 +73,9 @@ else:
 with open(lock_file_path, 'w') as o:
     o.write(str(os.getpid()))
 
+
+faulthandler.enable()
+
 # Qt Application
 app = QApplication(sys.argv)
 app.setStyleSheet(Globals.default_window_style + '''
@@ -100,4 +104,6 @@ main_widget = MainWidget()
 window = MainWindow(main_widget)
 
 # Execute application
-sys.exit(app.exec_())
+ris = app.exec_()
+logging.info('FSTK shut down.')
+sys.exit(ris)
