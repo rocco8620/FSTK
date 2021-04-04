@@ -310,6 +310,9 @@ class MainWidget(QWidget):
         self.task_list.setDropIndicatorShown(True)
         self.task_list.setDragDropMode(QAbstractItemView.InternalMove)
 
+        # flag che indica se il timer sta scorrendo o è in pausa
+        self.running = True
+
         # QWidget Layout
         self.layout = QGridLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -385,8 +388,9 @@ class MainWidget(QWidget):
         return row
 
     def count_time(self):
-        for s in self.task_list.selectedItems():
-            self.task_list.itemWidget(s).update_time(+1)
+        if self.running:
+            for s in self.task_list.selectedItems():
+                self.task_list.itemWidget(s).update_time(+1)
 
 
     def update_total_time(self):
@@ -453,6 +457,8 @@ class MainWindow(QMainWindow):
         self.move(Globals.config['window']['x'], Globals.config['window']['y'])
         self.resize(Globals.config['window']['w'], Globals.config['window']['h'])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, Globals.config['window']['always_on_top'])
+
+        self.set_run_pause(Globals.config['time_running'])
 
         # carica il file dei task esistenti e li visualizza nell'interfaccia grafica
         self.load_tasks()
@@ -540,9 +546,18 @@ class MainWindow(QMainWindow):
         self.add_task_button = QPushButton("+")
         self.add_task_button.setFont(QFont('Mono', 17, weight=QFont.Bold))
         self.add_task_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.add_task_button.setMaximumWidth(100)
         self.add_task_button.clicked.connect(self.widget.create_task)
 
+        self.run_pause_button = QPushButton("Running")
+        self.run_pause_button.setStyleSheet('background-color: #42630f')
+        self.run_pause_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.run_pause_button.setMaximumWidth(100)
+        self.run_pause_button.clicked.connect(lambda: self.set_run_pause(not self.widget.running))
+
+
         status_bar.addPermanentWidget(self.add_task_button, 1)
+        status_bar.addPermanentWidget(self.run_pause_button, 1)
         status_bar.addPermanentWidget(self.widget.total_time, 3)
 
         self.setCentralWidget(self.widget)
@@ -687,7 +702,6 @@ class MainWindow(QMainWindow):
 
             Utils.launch_thread(CheckRedmineCredsWorker, None, signals_handlers=[('finished', func)])
 
-
     def refresh_ticket_titles(self):
         tickets = []
         for i in range(self.widget.task_list.count()):
@@ -717,13 +731,21 @@ class MainWindow(QMainWindow):
 
         Utils.launch_thread(UpdateTicketTitleWorker, [tickets], [('finished', func)])
 
-
     def clear_ticket_titles(self):
         for i in range(self.widget.task_list.count()):
             t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
             t.ticket_title.setText('')
             t.ticket_title.setProperty('invalid', False)
 
+    def set_run_pause(self, state):
+        self.widget.running = state
+
+        if self.widget.running:
+            self.run_pause_button.setStyleSheet('background-color: #42630f')
+            self.run_pause_button.setText('Running')
+        else:
+            self.run_pause_button.setStyleSheet('background-color: #630f31')
+            self.run_pause_button.setText('Paused')
 
     # @Slot()
     # def toggle_window_stay_on_top(self):
@@ -752,10 +774,12 @@ class MainWindow(QMainWindow):
         Globals.config['window']['w'] = self.width()
         # Globals.config['window']['always_on_top'] = bool(self.windowFlags() & Qt.WindowStaysOnTopHint)
         Globals.config['window']['always_on_top'] = True
+        Globals.config['time_running'] = self.widget.running
 
-        # salva su disco le config e tempi/task
+        # salva su disco le config
         Globals.config.save()
 
+        # salva su disco i task/tempi
         self.flush_tasks_to_savefile()
 
         logging.debug('Cleaning lock file for the current execution')

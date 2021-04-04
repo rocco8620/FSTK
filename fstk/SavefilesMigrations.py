@@ -14,7 +14,7 @@ class Migration(object):
 
         # nulla da fare, siamo già alla versione corretta
         if from_ == to:
-            logging.debug("Nothing to migrate for {} savefile".format(filetype))
+            logging.debug("Nothing to migrate for {} savefile. Current version: {}".format(filetype, to))
             return d
 
         tmp = copy.deepcopy(d)
@@ -23,7 +23,7 @@ class Migration(object):
             f = getattr(self, '_migrate_{}_{}'.format(i, j), None)
 
             if f is None:
-                logging.error("Missing {} savefile migrating version ({}) to lower version ({})".format(filetype, i, j))
+                logging.error("Missing {} savefile migrating version ({}) from version ({})".format(filetype, i, j))
                 raise MigrationError("Missing {} savefile migrating from version {} to version {}".format(filetype, i, j))
             # applica la funzione di migrazione
             success, message = f(tmp)
@@ -32,7 +32,7 @@ class Migration(object):
                 logging.error("Error migrating {} savefile from version {} to version {}: {}".format(filetype, i, j, message))
                 raise MigrationError("Error migrating {} savefile from version {} to version {}: {}".format(filetype, i, j, message))
             else:
-                logging.info("Successfully migrated {} savefile from version ({}) to version ({})".format(filetype, i, j))
+                logging.info("Successfully migrated {} savefile from version {} to version {}".format(filetype, i, j))
 
         tmp['version'] = to
         return tmp
@@ -49,6 +49,7 @@ class ConfigMigrations(Migration):
         d['stats'] = {
             'total_created_tasks': 0,
         }
+
         return True, None
 
     def _migrate_2_3(self, d):
@@ -60,6 +61,12 @@ class ConfigMigrations(Migration):
                 'task_name_from_ticket': False
             }
         }
+
+        return True, None
+
+    def _migrate_3_4(self, d):
+        d['time_running'] = True
+
         return True, None
 
 

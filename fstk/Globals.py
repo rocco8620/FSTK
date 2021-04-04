@@ -11,7 +11,7 @@ default_window_style = '''
 
 config = None
 
-config_file_version = 3
+config_file_version = 4
 tasks_file_version = 3
 
 default_config = {
@@ -37,6 +37,7 @@ default_config = {
                'task_name_from_ticket': False
        },
     },
+    'time_running': True,
     'version': config_file_version
 }
 

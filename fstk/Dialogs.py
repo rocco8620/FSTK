@@ -284,6 +284,10 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.5.0</b>
+            <ul>
+                <li>The time traking can now be paused</li>
+            </ul><br>
             <b>Release 0.4.1</b>
             <ul>
                 <li>Fix bug redmine ticket title search when no ticket number was provided</li>
