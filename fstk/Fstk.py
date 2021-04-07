@@ -49,6 +49,8 @@ class RowElement(QWidget):
         self.__list = list
         self.__list_item = list_item
 
+        fa5 = QFont('Font Awesome 5 Free')
+
         self.box = QGridLayout()
 
         self.name = QLabelClickable(options['name'])
@@ -94,29 +96,44 @@ class RowElement(QWidget):
         self.add_time = QPushButton("+5")
         self.add_time.clicked.connect(lambda: self.update_time(+5 * 60))
         self.add_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
+        self.add_time.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
+
+        self.notes = QPushButton('\uf249') # sticky-note
+        self.notes.setFont(fa5)
+        self.notes.clicked.connect(lambda: self.update_time(-5 * 60))
+        self.notes.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
+        self.notes.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
+        self.notes.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
+        self.notes.setMinimumHeight(self.get_size_from_element(self.add_time)[1])
 
         self.sub_time = QPushButton("-5")
         self.sub_time.clicked.connect(lambda: self.update_time(-5 * 60))
         self.sub_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
-        self.sub_time.setMaximumWidth(self.set_min_size_from_content(self.add_time))
+        self.sub_time.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
+        self.sub_time.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
 
+        self.time_buttons.addWidget(self.notes)
         self.time_buttons.addWidget(self.sub_time)
         self.time_buttons.addWidget(self.add_time)
 
         self.box.addLayout(self.time_buttons, 1, 1)
 
-        self.del_record = QPushButton("X")
+        self.del_record = QPushButton('\uf1f8') # trash
+        self.del_record.setFont(fa5)
         self.del_record.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
-        self.del_record.setMaximumWidth(self.set_min_size_from_content(self.add_time))
-        self.del_record.setMinimumWidth(self.set_min_size_from_content(self.add_time))
+        self.del_record.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
+        self.del_record.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
+        self.del_record.setMinimumHeight(self.get_size_from_element(self.add_time)[1])
         self.del_record.clicked.connect(self.del_task)
 
         self.box.addWidget(self.del_record, 0, 2)
 
-        self.clear_record_time = QPushButton("C")
+        self.clear_record_time = QPushButton('\uf51a') # broom
+        self.clear_record_time.setFont(fa5)
         self.clear_record_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
-        self.clear_record_time.setMaximumWidth(self.set_min_size_from_content(self.add_time))
-        self.clear_record_time.setMinimumWidth(self.set_min_size_from_content(self.add_time))
+        self.clear_record_time.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
+        self.clear_record_time.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
+        self.clear_record_time.setMinimumHeight(self.get_size_from_element(self.add_time)[1])
         self.clear_record_time.clicked.connect(self.clear_time)
 
         self.box.addWidget(self.clear_record_time, 1, 2)
@@ -222,7 +239,7 @@ class RowElement(QWidget):
 
         self.spent_time.setText(Utils.format_time(self.__seconds))
 
-        elements = [self.spent_time, self.add_time, self.sub_time, self.del_record, self.clear_record_time, self.ticket_number, self.name, self.ticket_title]
+        elements = [self.spent_time, self.add_time, self.sub_time, self.del_record, self.clear_record_time, self.ticket_number, self.name, self.ticket_title, self.notes]
         # valuta se è possibile che sia avvenuta un condizione che provocherebbe il cambio di colore degli elementi
         # se non può essere avvenuta skippa il codice di set dello style
         if (old_seconds == 0 and self.__seconds != 0) or (old_seconds != 0 and self.__seconds == 0) or (old_seconds == self.__seconds == 0):
@@ -243,11 +260,12 @@ class RowElement(QWidget):
 
     # funzione per la formattazione degli elementi grafici
     @staticmethod
-    def set_min_size_from_content(elem):
-        width = elem.fontMetrics().boundingRect(elem.text()).width() + 14
-        elem.setMaximumWidth(width)
+    def get_size_from_element(elem):
+        metric = elem.fontMetrics().boundingRect(elem.text())
+        width = metric.width() + 14
+        height = metric.height() + 4
 
-        return width
+        return width, height
 
 
 class ListWidget(QListWidget):
@@ -482,6 +500,7 @@ class MainWindow(QMainWindow):
     def load_ui(self):
         self.setWindowTitle("Fast Switch Time Keeper")
         self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
+        QtGui.QFontDatabase.addApplicationFont(Utils.get_local_file_path('Font Awesome 5 Free-Solid-900.otf'))
         self.setWindowFlag(Qt.FramelessWindowHint)
         self.resize(460, 520)
 

@@ -12,7 +12,7 @@ default_window_style = '''
 config = None
 
 config_file_version = 4
-tasks_file_version = 3
+tasks_file_version = 4
 
 default_config = {
     'window': {
@@ -48,7 +48,8 @@ default_tasks = {
             'ticket': '1234',
             'elapsed_time': 4632,
             'color_group': 'Blue',
-            'ticket_title': ''
+            'ticket_title': '',
+            'notes': 'This is your first task. You can save notes here.'
         }
     },
     'version': tasks_file_version

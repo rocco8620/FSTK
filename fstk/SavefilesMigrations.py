@@ -86,3 +86,10 @@ class TasksMigrations(Migration):
             d['current_tasks'][t]['ticket_title'] = ''
 
         return True, None
+
+    def _migrate_3_4(self, d):
+        for t in d['current_tasks']:
+            d['current_tasks'][t]['notes'] = ''
+
+        return True, None
+
