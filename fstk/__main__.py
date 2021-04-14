@@ -53,7 +53,7 @@ if os.path.isfile(lock_file_path):
         lock_pid_cmdline = [ x.decode() for x in lock_pid_cmdline.split(b'\x00') if x != b'' ]
 
         # verifico se il processo identificato dal lock file è del tipo giusto
-        if lock_pid_cmdline[-2] == '-m' and lock_pid_cmdline[-1] == 'fstk':
+        if len(lock_pid_cmdline) >= 2 and lock_pid_cmdline[-2] == '-m' and lock_pid_cmdline[-1] == 'fstk':
             logging.warning('There is another instance of FSTK running (pid {}). Exiting'.format(lock_pid))
             sys.exit()
         else:

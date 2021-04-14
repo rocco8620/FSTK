@@ -39,7 +39,7 @@ def get_tickets_title(numbers):
 
     numbers = [ str(n) for n in numbers ]
 
-    succes, text = request('GET', '/issues.json', params={'issue_id': ','.join(numbers)})
+    succes, text = request('GET', '/issues.json', params={'issue_id': ','.join(numbers), 'status_id': '*'})
 
     if not succes:
         return None

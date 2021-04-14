@@ -6,13 +6,13 @@ import sys
 import requests
 from PySide2 import QtGui
 from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QThread
-from PySide2.QtGui import QFont, QDrag, QPixmap, QPainter, QCursor, QColor, QPalette
+from PySide2.QtGui import QFont, QDrag, QPixmap, QPainter, QCursor
 from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QWidget,
                                QListWidget, QListWidgetItem, QGridLayout,
-                               QSizePolicy, QAbstractItemView, QListView, QMenu, QStyleOption, QLayout)
+                               QSizePolicy, QAbstractItemView, QListView, QMenu)
 
 from .Dialogs import (AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog,
-                      StatisticsDialog, ConfigurationDialog)
+                      StatisticsDialog, ConfigurationDialog, ShowNotesDialog)
 
 from .SaveFiles import SaveFile
 from . import Globals, Utils, Palette, Redmine
@@ -22,9 +22,6 @@ from . import Updater
 class QLabelClickable(QLabel):
     clicked = Signal()
 
-    def __init__(self, parent=None):
-        QLabel.__init__(self, parent)
-
     def mousePressEvent(self, ev):
         real_rect = self.fontMetrics().boundingRect(self.rect(), Qt.TextWordWrap, self.text())
         if real_rect.contains(ev.pos()):
@@ -32,6 +29,15 @@ class QLabelClickable(QLabel):
         else:
             ev.ignore()
 
+class QPushButtonHoverable(QPushButton):
+    mouse_entered = Signal(QPoint)
+    mouse_leaved = Signal()
+
+    def enterEvent(self, ev):
+        self.mouse_entered.emit(self.mapToGlobal(QPoint(self.size().height(), self.size().width())))
+
+    def leaveEvent(self, ev):
+        self.mouse_leaved.emit()
 
 class RowElement(QWidget):
     __seconds = 0
@@ -48,6 +54,9 @@ class RowElement(QWidget):
         self.__main_widget = main_widget
         self.__list = list
         self.__list_item = list_item
+
+        # inizializzato in un metodo sotto
+        self.notes_dialog = None
 
         fa5 = QFont('Font Awesome 5 Free')
 
@@ -96,12 +105,14 @@ class RowElement(QWidget):
         self.add_time = QPushButton("+5")
         self.add_time.clicked.connect(lambda: self.update_time(+5 * 60))
         self.add_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
+        self.add_time.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
         self.add_time.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
 
-        self.notes = QPushButton('\uf249') # sticky-note
+        self.notes = QPushButtonHoverable('\uf249') # sticky-note
         self.notes.setFont(fa5)
-        self.notes.clicked.connect(lambda: self.update_time(-5 * 60))
-        self.notes.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
+        self.notes.mouse_entered.connect(self.show_notes)
+        self.notes.mouse_leaved.connect(self.hide_notes)
+        self.notes.setStyleSheet('QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }')
         self.notes.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
         self.notes.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
         self.notes.setMinimumHeight(self.get_size_from_element(self.add_time)[1])
@@ -222,6 +233,17 @@ class RowElement(QWidget):
 
         self.set_time(0)
 
+    @Slot()
+    def show_notes(self, pos):
+        if self.notes_dialog is None:
+            self.notes_dialog = ShowNotesDialog(pos, "Prova provaProva provaProva provaProva provaProva provaProva provaProva prova")
+            self.notes_dialog.show()
+
+    @Slot()
+    def hide_notes(self):
+        self.notes_dialog.accept()
+        self.notes_dialog = None
+
     # Metodi chiamati esternmente
 
     def update_time(self, seconds):
@@ -276,14 +298,14 @@ class ListWidget(QListWidget):
     def startDrag(self, supported_actions):
         drag = QDrag(self)
         drag.setMimeData(self.model().mimeData(self.selectedIndexes()))
-        self.pixmap = QPixmap(self.viewport().visibleRegion().boundingRect().size())
-        self.pixmap.fill(Qt.transparent)
-        painter = QPainter(self.pixmap)
+        self.__pixmap = QPixmap(self.viewport().visibleRegion().boundingRect().size())
+        self.__pixmap.fill(Qt.transparent)
+        painter = QPainter(self.__pixmap)
 
         for i in self.selectedIndexes():
             painter.drawPixmap(self.visualRect(i), self.viewport().grab(self.visualRect(i)))
 
-        drag.setPixmap(self.pixmap)
+        drag.setPixmap(self.__pixmap)
         drag.setHotSpot(self.viewport().mapFromGlobal(QCursor.pos()))
         drag.exec_(supported_actions, Qt.MoveAction)
 

@@ -287,6 +287,9 @@ class ChangelogDialog(QDialog):
             <b>Release 0.5.0</b>
             <ul>
                 <li>The time traking can now be paused</li>
+                <li>New icons for buttons</li>
+                <li>Fix fstk not starting if lockfile was pointing to process with specific cmdline</li>
+                <li>Fix redmine ticket title missing if the ticket was marked as 'closed' on redmine</li>
             </ul><br>
             <b>Release 0.4.1</b>
             <ul>
@@ -494,3 +497,33 @@ class ConfigurationDialog(QDialog):
         for w in widgets:
             w.setEnabled(state == Qt.Checked)
 
+
+
+class ShowNotesDialog(QDialog):
+
+    def __init__(self, pos, text, max_width=700):
+        QDialog.__init__(self)
+
+        self.resize(0, 100)
+        self.setStyleSheet(default_window_style + '''
+            QDialog { background-color: #232931 }
+            QLineEdit { background-color: #444f5d; }
+            QPushButton, QLabel { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
+
+        ''')
+
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput)
+
+        self.box = QGridLayout()
+
+        self.text = QLabel(text)
+        self.text.setMaximumWidth(max_width)
+        self.text.setWordWrap(True)
+        self.text.setTextFormat(Qt.RichText)
+
+        self.box.addWidget(self.text, 0, 0)
+
+        self.setLayout(self.box)
+        self.adjustSize()
+
+        self.move(pos)
