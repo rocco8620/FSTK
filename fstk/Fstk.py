@@ -12,7 +12,7 @@ from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMain
                                QSizePolicy, QAbstractItemView, QListView, QMenu)
 
 from .Dialogs import (AskForTextDialog, ConfirmDialog, NewTaskDialog, HelpDialog, InformationDialog, ChangelogDialog,
-                      StatisticsDialog, ConfigurationDialog, ShowNotesDialog)
+                      StatisticsDialog, ConfigurationDialog, ShowNotesDialog, EditNotesDialog)
 
 from .SaveFiles import SaveFile
 from . import Globals, Utils, Palette, Redmine
@@ -48,6 +48,8 @@ class RowElement(QWidget):
     __list = None
     __list_item = None
 
+    __notes = ''
+
 
     def __init__(self, options, main_widget, list, list_item):
         super().__init__()
@@ -56,9 +58,10 @@ class RowElement(QWidget):
         self.__list_item = list_item
 
         # inizializzato in un metodo sotto
-        self.notes_dialog = None
+        self.__notes_dialog = None
+        self.__notes = options.get('notes', '')
 
-        fa5 = QFont('Font Awesome 5 Free')
+        fa5 = QFont('Font Awesome 5 Pro')
 
         self.box = QGridLayout()
 
@@ -112,6 +115,7 @@ class RowElement(QWidget):
         self.notes.setFont(fa5)
         self.notes.mouse_entered.connect(self.show_notes)
         self.notes.mouse_leaved.connect(self.hide_notes)
+        self.notes.clicked.connect(self.edit_notes)
         self.notes.setStyleSheet('QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }')
         self.notes.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
         self.notes.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
@@ -129,7 +133,7 @@ class RowElement(QWidget):
 
         self.box.addLayout(self.time_buttons, 1, 1)
 
-        self.del_record = QPushButton('\uf1f8') # trash
+        self.del_record = QPushButton('\uf1f8') # trash \uf1f8
         self.del_record.setFont(fa5)
         self.del_record.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
         self.del_record.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
@@ -139,7 +143,7 @@ class RowElement(QWidget):
 
         self.box.addWidget(self.del_record, 0, 2)
 
-        self.clear_record_time = QPushButton('\uf51a') # broom
+        self.clear_record_time = QPushButton('\uf51a') # broom \uf51a
         self.clear_record_time.setFont(fa5)
         self.clear_record_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
         self.clear_record_time.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
@@ -235,16 +239,26 @@ class RowElement(QWidget):
 
     @Slot()
     def show_notes(self, pos):
-        if self.notes_dialog is None:
-            self.notes_dialog = ShowNotesDialog(pos, "Prova provaProva provaProva provaProva provaProva provaProva provaProva prova")
-            self.notes_dialog.show()
+        if self.__notes_dialog is None and self.__notes != '':
+            self.__notes_dialog = ShowNotesDialog(pos, self.__notes)
+            self.__notes_dialog.show()
 
     @Slot()
     def hide_notes(self):
-        self.notes_dialog.accept()
-        self.notes_dialog = None
+        if self.__notes_dialog is not None:
+            self.__notes_dialog.accept()
+            self.__notes_dialog = None
 
-    # Metodi chiamati esternmente
+    def edit_notes(self):
+        print(self.__notes)
+        dialog = EditNotesDialog(self.__notes)
+
+        if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
+            return
+
+        self.__notes = dialog.text.toPlainText().strip()
+
+    # Metodi chiamati esternamente
 
     def update_time(self, seconds):
         self.set_time(self.get_time()+seconds)
@@ -277,6 +291,7 @@ class RowElement(QWidget):
             'elapsed_time': self.__seconds,
             'color_group': self.__color_group,
             'ticket_title': None if self.ticket_title.property('invalid') else self.ticket_title.text(),
+            'notes': self.__notes
         }
 
 
@@ -407,7 +422,7 @@ class MainWidget(QWidget):
         Utils.launch_thread(UpdateTicketTitleWorker, [ticket_number], [('finished', func)])
 
 
-    def insert_task_in_list(self, name, ticket_number='', elapsed_time=0, color_group='No color', ticket_title=''):
+    def insert_task_in_list(self, name, ticket_number='', elapsed_time=0, color_group='No color', ticket_title='', notes=''):
         # Add to list a new item (item is simply an entry in your list)
         item = QListWidgetItem()
 
@@ -418,6 +433,7 @@ class MainWidget(QWidget):
             'elapsed_time': elapsed_time,
             'color_group': color_group,
             'ticket_title': ticket_title,
+            'notes': notes
         }, self, self.task_list, item)
         item.setSizeHint(row.minimumSizeHint())
 
@@ -522,7 +538,7 @@ class MainWindow(QMainWindow):
     def load_ui(self):
         self.setWindowTitle("Fast Switch Time Keeper")
         self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
-        QtGui.QFontDatabase.addApplicationFont(Utils.get_local_file_path('Font Awesome 5 Free-Solid-900.otf'))
+        QtGui.QFontDatabase.addApplicationFont(Utils.get_local_file_path('Font Awesome 5 Pro-Light-300.otf'))
         self.setWindowFlag(Qt.FramelessWindowHint)
         self.resize(460, 520)
 
@@ -617,7 +633,8 @@ class MainWindow(QMainWindow):
                                             '#' + t['ticket'],
                                             t['elapsed_time'],
                                             t['color_group'],
-                                            t['ticket_title'])
+                                            t['ticket_title'],
+                                            t['notes'])
 
         self.widget.update_total_time()
 

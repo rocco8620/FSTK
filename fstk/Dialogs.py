@@ -287,8 +287,9 @@ class ChangelogDialog(QDialog):
             <b>Release 0.5.0</b>
             <ul>
                 <li>The time traking can now be paused</li>
+                <li>Notes related to tasks can now be saved</li>
                 <li>New icons for buttons</li>
-                <li>Fix fstk not starting if lockfile was pointing to process with specific cmdline</li>
+                <li>Fix fstk not starting if lockfile was pointing to process with specific cmdline. Thanks M.Z.</li>
                 <li>Fix redmine ticket title missing if the ticket was marked as 'closed' on redmine</li>
             </ul><br>
             <b>Release 0.4.1</b>
@@ -313,7 +314,7 @@ class ChangelogDialog(QDialog):
             </ul><br>
             <b>Release 0.2.1</b>
             <ul>
-                <li>Fix drag & drop bug that made some tasks disappear if reordered</li>
+                <li>Fix drag & drop bug that made some tasks disappear if reordered. Thanks N.N.</li>
                 <li>Fixed bug that made the tasks controls disappear while the tasks was drag & dropped</li>
             </ul><br>
             <b>Release 0.2.0</b>
@@ -519,7 +520,6 @@ class ShowNotesDialog(QDialog):
         self.text = QLabel(text)
         self.text.setMaximumWidth(max_width)
         self.text.setWordWrap(True)
-        self.text.setTextFormat(Qt.RichText)
 
         self.box.addWidget(self.text, 0, 0)
 
@@ -527,3 +527,37 @@ class ShowNotesDialog(QDialog):
         self.adjustSize()
 
         self.move(pos)
+
+
+class EditNotesDialog(QDialog):
+
+    def __init__(self, initial_text):
+        QDialog.__init__(self)
+
+        self.setWindowTitle('Edit notes')
+        self.resize(600, 400)
+        self.setStyleSheet(default_window_style + '''
+            QDialog { background-color: #232931 }
+            QLineEdit { background-color: #444f5d; }
+            QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
+            QTextEdit { background-color: #444f5d }
+        ''')
+
+        self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
+
+        # QWidget Layout
+        self.box = QGridLayout()
+
+        self.text = QTextEdit()
+        self.text.setPlainText(initial_text)
+        self.box.addWidget(self.text, 0, 0)
+
+        self.close_button = QPushButton('Save')
+
+        self.close_button.clicked.connect(self.accept)
+
+        self.box.addWidget(self.close_button, 1, 0, alignment=Qt.AlignCenter)
+
+        self.close_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
+        self.setLayout(self.box)
