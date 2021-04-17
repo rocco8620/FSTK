@@ -105,27 +105,31 @@ class RowElement(QWidget):
 
         self.time_buttons = QHBoxLayout()
 
-        self.add_time = QPushButton("+5")
+        self.add_time = QPushButton('plus')
+        self.add_time.setFont(fa5)
         self.add_time.clicked.connect(lambda: self.update_time(+5 * 60))
         self.add_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
-        self.add_time.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
-        self.add_time.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
+        self.add_time.setMaximumWidth(self.get_button_size()[0])
+        self.add_time.setMinimumWidth(self.get_button_size()[0])
+        self.add_time.setMinimumHeight(self.get_button_size()[1])
 
-        self.notes = QPushButtonHoverable('\uf249') # sticky-note
+        self.notes = QPushButtonHoverable('sticky-note')
         self.notes.setFont(fa5)
         self.notes.mouse_entered.connect(self.show_notes)
         self.notes.mouse_leaved.connect(self.hide_notes)
         self.notes.clicked.connect(self.edit_notes)
         self.notes.setStyleSheet('QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }')
-        self.notes.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
-        self.notes.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
-        self.notes.setMinimumHeight(self.get_size_from_element(self.add_time)[1])
+        self.notes.setMaximumWidth(self.get_button_size()[0])
+        self.notes.setMinimumWidth(self.get_button_size()[0])
+        self.notes.setMinimumHeight(self.get_button_size()[1])
 
-        self.sub_time = QPushButton("-5")
+        self.sub_time = QPushButton('minus')
+        self.sub_time.setFont(fa5)
         self.sub_time.clicked.connect(lambda: self.update_time(-5 * 60))
         self.sub_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
-        self.sub_time.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
-        self.sub_time.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
+        self.sub_time.setMaximumWidth(self.get_button_size()[0])
+        self.sub_time.setMinimumWidth(self.get_button_size()[0])
+        self.sub_time.setMinimumHeight(self.get_button_size()[1])
 
         self.time_buttons.addWidget(self.notes)
         self.time_buttons.addWidget(self.sub_time)
@@ -133,22 +137,22 @@ class RowElement(QWidget):
 
         self.box.addLayout(self.time_buttons, 1, 1)
 
-        self.del_record = QPushButton('\uf1f8') # trash \uf1f8
+        self.del_record = QPushButton('trash')
         self.del_record.setFont(fa5)
         self.del_record.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
-        self.del_record.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
-        self.del_record.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
-        self.del_record.setMinimumHeight(self.get_size_from_element(self.add_time)[1])
+        self.del_record.setMaximumWidth(self.get_button_size()[0])
+        self.del_record.setMinimumWidth(self.get_button_size()[0])
+        self.del_record.setMinimumHeight(self.get_button_size()[1])
         self.del_record.clicked.connect(self.del_task)
 
         self.box.addWidget(self.del_record, 0, 2)
 
-        self.clear_record_time = QPushButton('\uf51a') # broom \uf51a
+        self.clear_record_time = QPushButton('broom')
         self.clear_record_time.setFont(fa5)
         self.clear_record_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
-        self.clear_record_time.setMaximumWidth(self.get_size_from_element(self.add_time)[0])
-        self.clear_record_time.setMinimumWidth(self.get_size_from_element(self.add_time)[0])
-        self.clear_record_time.setMinimumHeight(self.get_size_from_element(self.add_time)[1])
+        self.clear_record_time.setMaximumWidth(self.get_button_size()[0])
+        self.clear_record_time.setMinimumWidth(self.get_button_size()[0])
+        self.clear_record_time.setMinimumHeight(self.get_button_size()[1])
         self.clear_record_time.clicked.connect(self.clear_time)
 
         self.box.addWidget(self.clear_record_time, 1, 2)
@@ -294,11 +298,9 @@ class RowElement(QWidget):
             'notes': self.__notes
         }
 
-
     # funzione per la formattazione degli elementi grafici
-    @staticmethod
-    def get_size_from_element(elem):
-        metric = elem.fontMetrics().boundingRect(elem.text())
+    def get_button_size(self):
+        metric = self.name.fontMetrics().boundingRect('+5')
         width = metric.width() + 14
         height = metric.height() + 4
 
@@ -542,6 +544,8 @@ class MainWindow(QMainWindow):
         self.setWindowFlag(Qt.FramelessWindowHint)
         self.resize(460, 520)
 
+        fa5 = QFont('Font Awesome 5 Pro')
+
         # Menu
         menu_bar = self.menuBar()
         options_menu = menu_bar.addMenu("Options")
@@ -600,16 +604,19 @@ class MainWindow(QMainWindow):
 
         self.widget.total_time = QLabel('Total time: 00:00:00')
 
-        self.add_task_button = QPushButton("+")
-        self.add_task_button.setFont(QFont('Mono', 17, weight=QFont.Bold))
+        self.add_task_button = QPushButton('plus')
+        self.add_task_button.setFont(fa5)
         self.add_task_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.add_task_button.setMaximumWidth(100)
+        self.add_task_button.setMinimumHeight(28)
         self.add_task_button.clicked.connect(self.widget.create_task)
 
-        self.run_pause_button = QPushButton("Running")
+        self.run_pause_button = QPushButton('play')
+        self.run_pause_button.setFont(fa5)
         self.run_pause_button.setStyleSheet('background-color: #42630f')
         self.run_pause_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.run_pause_button.setMaximumWidth(100)
+        self.add_task_button.setMinimumHeight(28)
         self.run_pause_button.clicked.connect(lambda: self.set_run_pause(not self.widget.running))
 
 
@@ -660,7 +667,7 @@ class MainWindow(QMainWindow):
                     dialog = ConfirmDialog(window_title='New update available',
                                            text='New version <b>v{}</b> is available, you are currently running version <b>v{}</b>.<br>'
                                                 'The update is completely automatic and takes 1 minute.<br>'
-                                                'Do you wan to update now?'.format(new_version, Globals.version),
+                                                'Do you wish to update now?'.format(new_version, Globals.version),
                                            positive_button='Yes',
                                            negative_button='No',
                                            html=True)
@@ -800,10 +807,10 @@ class MainWindow(QMainWindow):
 
         if self.widget.running:
             self.run_pause_button.setStyleSheet('background-color: #42630f')
-            self.run_pause_button.setText('Running')
+            self.run_pause_button.setText('play')
         else:
             self.run_pause_button.setStyleSheet('background-color: #630f31')
-            self.run_pause_button.setText('Paused')
+            self.run_pause_button.setText('pause')
 
     # @Slot()
     # def toggle_window_stay_on_top(self):
