@@ -284,9 +284,13 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.6.0</b>
+            <ul>
+                <li>Fix bug preventing the ticket number to be removed from a task</li>
+            </ul><br>
             <b>Release 0.5.0</b>
             <ul>
-                <li>The time traking can now be paused</li>
+                <li>The time tracking can now be paused</li>
                 <li>Notes related to tasks can now be saved</li>
                 <li>New icons for buttons</li>
                 <li>Fix fstk not starting if lockfile was pointing to process with specific cmdline. Thanks M.Z.</li>

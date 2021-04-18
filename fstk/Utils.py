@@ -33,6 +33,9 @@ def redmine_ticket_number_validator(text):
     """
     n = text.strip('# ')
 
+    if n == '':
+        return True, None
+
     try:
         n = int(n)
         if 0 < n < 1000000:

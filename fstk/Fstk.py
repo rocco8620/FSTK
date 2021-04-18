@@ -201,10 +201,15 @@ class RowElement(QWidget):
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 
-        self.ticket_number.setText('#' + dialog.line.text().strip('# '))
+        n = dialog.line.text().strip('# ')
 
-        if Globals.config['options']['redmine']['enabled']:
-            self.__main_widget.update_ticket_title(self.ticket_title, dialog.line.text().strip('# '))
+        self.ticket_number.setText('#' + n)
+
+        if n == '':
+            self.ticket_title.setText('')
+        else:
+            if Globals.config['options']['redmine']['enabled']:
+                self.__main_widget.update_ticket_title(self.ticket_title, n)
 
     @Slot()
     def edit_name(self):
@@ -254,7 +259,6 @@ class RowElement(QWidget):
             self.__notes_dialog = None
 
     def edit_notes(self):
-        print(self.__notes)
         dialog = EditNotesDialog(self.__notes)
 
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo

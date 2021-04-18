@@ -31,4 +31,4 @@ def install_package(package_name):
 def restart():
     # riavvia il software dopo aver installato una nuova versione
     # execv magic
-    os.execv(sys.executable, ['python', '-m', 'fstk'])
+    os.execv(sys.executable, ['python3', '-m', 'fstk'])
