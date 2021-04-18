@@ -11,7 +11,7 @@ default_window_style = '''
 
 config = None
 
-config_file_version = 4
+config_file_version = 5
 tasks_file_version = 4
 
 default_config = {
@@ -27,7 +27,22 @@ default_config = {
     },
     'first_run': True,
     'stats': {
-        'total_created_tasks': 0,
+        'task_created': 0,
+        'task_color_set': 0,
+        'task_name_edited': 0,
+        'task_ticket_n_edited': 0,
+        'task_time_increased': 0,
+        'task_time_decreased': 0,
+        'task_time_cleared': 0,
+        'task_deleted': 0,
+        'task_notes_edited': 0,
+        'task_notes_viewed': 0,
+        'task_reordered': 0,
+
+        'ticket_titles_refreshed': 0,
+        'time_run_toggled': 0,
+        'task_created_without_ticket_number': 0,
+
     },
     'options': {
         'redmine' : {

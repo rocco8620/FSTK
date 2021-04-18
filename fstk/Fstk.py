@@ -107,7 +107,7 @@ class RowElement(QWidget):
 
         self.add_time = QPushButton('plus')
         self.add_time.setFont(fa5)
-        self.add_time.clicked.connect(lambda: self.update_time(+5 * 60))
+        self.add_time.clicked.connect(self.add_time_f)
         self.add_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
         self.add_time.setMaximumWidth(self.get_button_size()[0])
         self.add_time.setMinimumWidth(self.get_button_size()[0])
@@ -125,7 +125,7 @@ class RowElement(QWidget):
 
         self.sub_time = QPushButton('minus')
         self.sub_time.setFont(fa5)
-        self.sub_time.clicked.connect(lambda: self.update_time(-5 * 60))
+        self.sub_time.clicked.connect(self.sub_time_f)
         self.sub_time.setStyleSheet('padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4;')
         self.sub_time.setMaximumWidth(self.get_button_size()[0])
         self.sub_time.setMinimumWidth(self.get_button_size()[0])
@@ -183,6 +183,7 @@ class RowElement(QWidget):
         if action is not None:
             self.setStyleSheet('RowElement { border: solid ' + ris[action][1] + '; border-width: 0px 0px 0px 5px; }')
             self.__color_group = ris[action][0]
+            Globals.config['stats']['task_color_set'] += 1
 
     def mousePressEvent(self, event):
         # ignora i click con il tasto destro per selezionare come attivo un widget
@@ -192,6 +193,18 @@ class RowElement(QWidget):
             event.accept()
 
     # Azioni eseguite dall'interfaccia grafica
+
+    @Slot()
+    def add_time_f(self):
+        self.update_time(+5 * 60)
+        Globals.config['stats']['task_time_increased'] += 1
+
+    @Slot()
+    def sub_time_f(self):
+        self.update_time(-5 * 60)
+        Globals.config['stats']['task_time_decreased'] += 1
+
+
     @Slot()
     def edit_ticket_number(self):
         dialog = AskForTextDialog(window_title='Set redmine ticket number',
@@ -211,6 +224,8 @@ class RowElement(QWidget):
             if Globals.config['options']['redmine']['enabled']:
                 self.__main_widget.update_ticket_title(self.ticket_title, n)
 
+        Globals.config['stats']['task_ticket_n_edited'] += 1
+
     @Slot()
     def edit_name(self):
         dialog = AskForTextDialog(window_title='Set task name',
@@ -223,6 +238,7 @@ class RowElement(QWidget):
 
         self.name.setText(t)
         self.__list_item.setSizeHint(self.minimumSizeHint())
+        Globals.config['stats']['task_name_edited'] += 1
 
     @Slot()
     def del_task(self):
@@ -236,6 +252,8 @@ class RowElement(QWidget):
 
         self.__main_widget.update_total_time()
 
+        Globals.config['stats']['task_deleted'] += 1
+
     @Slot()
     def clear_time(self):
         dialog = ConfirmDialog(window_title='Confirm time deletion',
@@ -246,11 +264,15 @@ class RowElement(QWidget):
 
         self.set_time(0)
 
+        Globals.config['stats']['task_time_cleared'] += 1
+
     @Slot()
     def show_notes(self, pos):
         if self.__notes_dialog is None and self.__notes != '':
             self.__notes_dialog = ShowNotesDialog(pos, self.__notes)
             self.__notes_dialog.show()
+
+            Globals.config['stats']['task_notes_viewed'] += 1
 
     @Slot()
     def hide_notes(self):
@@ -258,6 +280,7 @@ class RowElement(QWidget):
             self.__notes_dialog.accept()
             self.__notes_dialog = None
 
+    @Slot()
     def edit_notes(self):
         dialog = EditNotesDialog(self.__notes)
 
@@ -265,6 +288,8 @@ class RowElement(QWidget):
             return
 
         self.__notes = dialog.text.toPlainText().strip()
+
+        Globals.config['stats']['task_notes_edited'] += 1
 
     # Metodi chiamati esternamente
 
@@ -317,6 +342,8 @@ class ListWidget(QListWidget):
         super().__init__()
 
     def startDrag(self, supported_actions):
+        Globals.config['stats']['task_reordered'] += 1
+
         drag = QDrag(self)
         drag.setMimeData(self.model().mimeData(self.selectedIndexes()))
         self.__pixmap = QPixmap(self.viewport().visibleRegion().boundingRect().size())
@@ -402,11 +429,14 @@ class MainWidget(QWidget):
         ticket_number = dialog.ticket_number.text()
 
         row = self.insert_task_in_list(name, '#' + ticket_number)
-        Globals.config['stats']['total_created_tasks'] += 1
+        Globals.config['stats']['task_created'] += 1
 
-        # se abilitato redmine lancio un thread per ottenere il titolo del ticket
-        if Globals.config['options']['redmine']['enabled'] and ticket_number != '':
-            self.update_ticket_title(row.ticket_title, ticket_number)
+        if ticket_number != '':
+            # se abilitato redmine lancio un thread per ottenere il titolo del ticket
+            if Globals.config['options']['redmine']['enabled'] :
+                self.update_ticket_title(row.ticket_title, ticket_number)
+        else:
+            Globals.config['stats']['task_created_without_ticket_number'] += 1
 
     def update_ticket_title(self, title_widget, ticket_number):
         title_widget.setText('...')
@@ -576,7 +606,7 @@ class MainWindow(QMainWindow):
         self.refresh_titles_action.setEnabled(Globals.config['options']['redmine']['enabled'])
 
         statistics_menu = menu_bar.addMenu("Statistics")
-        usage_action = statistics_menu.addAction("Usage")
+        usage_action = statistics_menu.addAction("Dev statistics")
         usage_action.triggered.connect(lambda: StatisticsDialog().exec())
 
         other_menu = menu_bar.addMenu("Other")
@@ -621,7 +651,7 @@ class MainWindow(QMainWindow):
         self.run_pause_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.run_pause_button.setMaximumWidth(100)
         self.add_task_button.setMinimumHeight(28)
-        self.run_pause_button.clicked.connect(lambda: self.set_run_pause(not self.widget.running))
+        self.run_pause_button.clicked.connect(self.toggle_run_pause)
 
 
         status_bar.addPermanentWidget(self.add_task_button, 1)
@@ -772,6 +802,8 @@ class MainWindow(QMainWindow):
             Utils.launch_thread(CheckRedmineCredsWorker, None, signals_handlers=[('finished', func)])
 
     def refresh_ticket_titles(self):
+        Globals.config['stats']['ticket_titles_refreshed'] += 1
+
         tickets = []
         for i in range(self.widget.task_list.count()):
             t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
@@ -815,6 +847,11 @@ class MainWindow(QMainWindow):
         else:
             self.run_pause_button.setStyleSheet('background-color: #630f31')
             self.run_pause_button.setText('pause')
+
+    def toggle_run_pause(self):
+        self.set_run_pause(not self.widget.running)
+
+        Globals.config['stats']['time_run_toggled'] += 1
 
     # @Slot()
     # def toggle_window_stay_on_top(self):

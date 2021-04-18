@@ -1,9 +1,10 @@
+import json
 import re
 
 from PySide2 import QtGui
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QDialog, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QLabel, QPlainTextEdit, \
-    QTextEdit, QCheckBox
+    QTextEdit, QCheckBox, QApplication
 
 from . import Globals, Utils
 from .Globals import default_window_style
@@ -286,6 +287,7 @@ class ChangelogDialog(QDialog):
             <br>
             <b>Release 0.6.0</b>
             <ul>
+                <li>Usage statistics are now recorded locally, to be used to hint development direction</li>
                 <li>Fix bug preventing the ticket number to be removed from a task</li>
             </ul><br>
             <b>Release 0.5.0</b>
@@ -314,7 +316,7 @@ class ChangelogDialog(QDialog):
                 <li>A task with 0 time counted is now greyed</li>
                 <li>Tasks can now be beleted using 'Del' keyboard button</li>
                 <li>Clicking on empty space near a task name wont open the 'change name dialog' anymore</li>
-                <li>Fixed incompatibility with python 3.6.0-3.8.5</li>
+                <li>Fixed incompatibility with python 3.6.0-3.8.5. Thanks P.P.</li>
             </ul><br>
             <b>Release 0.2.1</b>
             <ul>
@@ -361,7 +363,7 @@ class StatisticsDialog(QDialog):
     def __init__(self):
         QDialog.__init__(self)
 
-        self.setWindowTitle('Statistics')
+        self.setWindowTitle('Dev Statistics')
         self.setStyleSheet(default_window_style + '''
             QDialog { background-color: #232931 }
             QLineEdit { background-color: #444f5d; }
@@ -371,11 +373,11 @@ class StatisticsDialog(QDialog):
         self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
 
         help_text = '''
-            <b>Statistics</b>
+            <b>Dev Statistics</b>
             <ul>
-                <li>Total number of task created: <b>{}<b></li>
+                {}
             </ul>
-        '''.format(Globals.config['stats']['total_created_tasks'])
+        '''.format(''.join([ '<li>{}: <b>{}<b></li>'.format(k.replace('_', ' ').capitalize(), v) for k, v in  Globals.config['stats'].items() ]) )
 
         # QWidget Layout
         self.box = QGridLayout()
@@ -385,12 +387,16 @@ class StatisticsDialog(QDialog):
         self.box.addWidget(self.text, 0, 0)
 
         self.close_button = QPushButton('Close')
-
         self.close_button.clicked.connect(lambda: self.accept())
 
-        self.box.addWidget(self.close_button, 1, 0, alignment=Qt.AlignCenter)
+        self.clipboard_button = QPushButton('Copy to clipboard')
+        self.clipboard_button.clicked.connect(lambda: QApplication.clipboard().setText(json.dumps(Globals.config['stats'])))
+
+        self.box.addWidget(self.clipboard_button, 1, 0, alignment=Qt.AlignCenter)
+        self.box.addWidget(self.close_button, 2, 0, alignment=Qt.AlignCenter)
 
         self.close_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.clipboard_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         self.setLayout(self.box)
         self.adjustSize()

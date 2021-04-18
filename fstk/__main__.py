@@ -8,6 +8,8 @@ from PySide2.QtWidgets import QApplication
 from .Fstk import MainWidget, MainWindow
 from . import Globals
 
+faulthandler.enable()
+
 # configuro il logging
 
 logging.basicConfig(level=logging.DEBUG,
@@ -73,8 +75,6 @@ else:
 with open(lock_file_path, 'w') as o:
     o.write(str(os.getpid()))
 
-
-faulthandler.enable()
 
 # Qt Application
 app = QApplication(sys.argv)

@@ -69,6 +69,27 @@ class ConfigMigrations(Migration):
 
         return True, None
 
+    def _migrate_4_5(self, d):
+        del d['stats']['total_created_tasks']
+
+        d['stats']['task_created'] = 0
+        d['stats']['task_color_set'] = 0
+        d['stats']['task_name_edited'] = 0
+        d['stats']['task_ticket_n_edited'] = 0
+        d['stats']['task_time_increased'] = 0
+        d['stats']['task_time_decreased'] = 0
+        d['stats']['task_time_cleared'] = 0
+        d['stats']['task_deleted'] = 0
+        d['stats']['task_notes_edited'] = 0
+        d['stats']['task_notes_viewed'] = 0
+        d['stats']['task_reordered'] = 0
+
+        d['stats']['ticket_titles_refreshed'] = 0
+        d['stats']['time_run_toggled'] = 0
+        d['stats']['task_created_without_ticket_number'] = 0
+
+        return True, None
+
 
 class TasksMigrations(Migration):
 
