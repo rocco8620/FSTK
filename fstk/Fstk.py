@@ -645,9 +645,9 @@ class MainWindow(QMainWindow):
         self.add_task_button.setMinimumHeight(28)
         self.add_task_button.clicked.connect(self.widget.create_task)
 
-        self.run_pause_button = QPushButton('play')
+        self.run_pause_button = QPushButton('pause' if Globals.config['options']['boomer_compatibility']['invert_run_pause_button'] else 'play')
         self.run_pause_button.setFont(fa5)
-        self.run_pause_button.setStyleSheet('background-color: #42630f')
+        self.run_pause_button.setStyleSheet('background-color: {}'.format('#630f31' if Globals.config['options']['boomer_compatibility']['invert_run_pause_button'] else '#42630f'))
         self.run_pause_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.run_pause_button.setMaximumWidth(100)
         self.add_task_button.setMinimumHeight(28)
@@ -793,6 +793,7 @@ class MainWindow(QMainWindow):
         # aggiorno le conf globali con le nuove
         Globals.config['options'] = new_conf
 
+
         if Globals.config['options']['redmine']['enabled']:
 
             def func(result):
@@ -800,6 +801,10 @@ class MainWindow(QMainWindow):
                     InformationDialog('Warning', 'The redmine api key or host are invalid.').exec()
 
             Utils.launch_thread(CheckRedmineCredsWorker, None, signals_handlers=[('finished', func)])
+
+
+        self.set_run_pause(Globals.config['time_running'])
+
 
     def refresh_ticket_titles(self):
         Globals.config['stats']['ticket_titles_refreshed'] += 1
@@ -811,7 +816,6 @@ class MainWindow(QMainWindow):
             if t.ticket_number.text().strip('# ') != '':
                 tickets.append(t.ticket_number.text().strip('# '))
                 t.ticket_title.setText('...')
-                #Utils.set_prop_and_refresh(t.ticket_title, 'invalid')
 
         def func(result):
             if result is not None:
@@ -842,11 +846,11 @@ class MainWindow(QMainWindow):
         self.widget.running = state
 
         if self.widget.running:
-            self.run_pause_button.setStyleSheet('background-color: #42630f')
-            self.run_pause_button.setText('play')
+            self.run_pause_button.setStyleSheet('background-color: {}'.format('#630f31' if Globals.config['options']['boomer_compatibility']['invert_run_pause_button'] else '#42630f'))
+            self.run_pause_button.setText('pause' if Globals.config['options']['boomer_compatibility']['invert_run_pause_button'] else 'play')
         else:
-            self.run_pause_button.setStyleSheet('background-color: #630f31')
-            self.run_pause_button.setText('pause')
+            self.run_pause_button.setStyleSheet('background-color: {}'.format('#42630f' if Globals.config['options']['boomer_compatibility']['invert_run_pause_button'] else '#630f31'))
+            self.run_pause_button.setText('play' if Globals.config['options']['boomer_compatibility']['invert_run_pause_button'] else 'pause')
 
     def toggle_run_pause(self):
         self.set_run_pause(not self.widget.running)

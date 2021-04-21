@@ -4,7 +4,7 @@ import re
 from PySide2 import QtGui
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QDialog, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QLabel, QPlainTextEdit, \
-    QTextEdit, QCheckBox, QApplication
+    QTextEdit, QCheckBox, QApplication, QFrame
 
 from . import Globals, Utils
 from .Globals import default_window_style
@@ -287,6 +287,7 @@ class ChangelogDialog(QDialog):
             <br>
             <b>Release 0.6.0</b>
             <ul>
+                <li>New compatibility mode for boomers to invert the icon and color of play/pause button</li>
                 <li>Usage statistics are now recorded locally, to be used to hint development direction</li>
                 <li>Fix bug preventing the ticket number to be removed from a task</li>
             </ul><br>
@@ -421,6 +422,10 @@ class ConfigurationDialog(QDialog):
         # QWidget Layout
         self.box = QGridLayout()
 
+        ############################
+        ### Integrazioni redmine ###
+        ############################
+
         self.enable_redmine_integration = QCheckBox("Enable redmine integration")
         self.enable_redmine_integration.stateChanged.connect(self.update_redmine_ctrls_status)
         self.box.addWidget(self.enable_redmine_integration, 0, 0, 1, 2)
@@ -449,19 +454,43 @@ class ConfigurationDialog(QDialog):
         self.enable_redmine_integration.setChecked(current_config['redmine']['enabled'])
         self.update_redmine_ctrls_status(self.enable_redmine_integration.checkState())
 
+        ############################
+        ### Boomer compatibility ###
+        ############################
+
+        self.box.addWidget(self.get_separator(), 5, 0, 1, 2)
+
+        self.box.addWidget(QLabel('<b>Boomer compatibility mode</b>'), 6, 0, 1, 2)
+
+        self.boomer_play_pause_toggle = QCheckBox("Invert play/pause button color and icon to conform to old stile")
+        self.boomer_play_pause_toggle.setChecked(current_config['boomer_compatibility']['invert_run_pause_button'])
+        self.box.addWidget(self.boomer_play_pause_toggle, 7, 0, 1, 2)
+
+        ############################
+        ######### Generico #########
+        ############################
+
         self.error_label = QLabel()
         self.error_label.setStyleSheet('color: #fa7161')
-        self.box.addWidget(self.error_label, 5, 0, 1, 2)
+        self.box.addWidget(self.error_label, 8, 0, 1, 2)
 
         self.ok_button = QPushButton('Save')
         self.ok_button.clicked.connect(self.check_data)
 
-        self.box.addWidget(self.ok_button, 6, 0, 1, 2, alignment=Qt.AlignCenter)
+        self.box.addWidget(self.ok_button, 9, 0, 1, 2, alignment=Qt.AlignCenter)
 
         self.ok_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         self.setLayout(self.box)
         self.adjustSize()
+
+    def get_separator(self):
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet('background-color: #444f5d')
+        return separator
+
 
     def check_data(self):
 
@@ -491,6 +520,9 @@ class ConfigurationDialog(QDialog):
                'host': self.redmine_host.text().strip(' \r\n\t/'),
                'apikey': self.redmine_api_key.text().strip(),
                'task_name_from_ticket': False, #self.use_ticket_as_task_name.isChecked()
+           },
+           'boomer_compatibility' : {
+               'invert_run_pause_button': self.boomer_play_pause_toggle.isChecked()
            }
         }
 

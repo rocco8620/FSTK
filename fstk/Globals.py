@@ -51,6 +51,9 @@ default_config = {
                'apikey': '',
                'task_name_from_ticket': False
        },
+       'boomer_compatibility' : {
+           'invert_run_pause_button': False
+       }
     },
     'time_running': True,
     'version': config_file_version

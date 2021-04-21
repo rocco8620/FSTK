@@ -88,6 +88,10 @@ class ConfigMigrations(Migration):
         d['stats']['time_run_toggled'] = 0
         d['stats']['task_created_without_ticket_number'] = 0
 
+        d['options']['boomer_compatibility'] = {
+            'invert_run_pause_button': False
+        }
+
         return True, None
 
 
