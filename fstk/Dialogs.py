@@ -239,7 +239,8 @@ class HelpDialog(QDialog):
             <ul>
                 <li>The tasks and times are written to disk every minute, to prevent data loss.</li>
                 <li>This software features an auto update function.</li>
-                </li>Logs are saved on /tmp/fstk.log</li>
+                <li>Logs are saved on /tmp/fstk.log</li>
+                <li>This software is BigFax® approved</li>
             </ul><br>
             <b>Gotchas</b>
             <ul>
@@ -289,6 +290,7 @@ class ChangelogDialog(QDialog):
             <ul>
                 <li>New compatibility mode for boomers to invert the icon and color of play/pause button</li>
                 <li>Usage statistics are now recorded locally, to be used to hint development direction</li>
+                <li>Now fstk correctly handles SIGTERM signals</li>
                 <li>Fix bug preventing the ticket number to be removed from a task</li>
             </ul><br>
             <b>Release 0.5.0</b>
@@ -373,7 +375,7 @@ class StatisticsDialog(QDialog):
 
         self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
 
-        help_text = '''
+        stats_text = '''
             <b>Dev Statistics</b>
             <ul>
                 {}
@@ -383,7 +385,7 @@ class StatisticsDialog(QDialog):
         # QWidget Layout
         self.box = QGridLayout()
 
-        self.text = QLabel(help_text)
+        self.text = QLabel(stats_text)
         self.text.setTextFormat(Qt.RichText)
         self.box.addWidget(self.text, 0, 0)
 

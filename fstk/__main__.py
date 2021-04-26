@@ -2,6 +2,7 @@ import faulthandler
 import logging
 import os
 import sys
+import signal
 
 from PySide2.QtWidgets import QApplication
 
@@ -97,13 +98,24 @@ app.setStyleSheet(Globals.default_window_style + '''
 
 ''')
 
+def exit_handler(signum, frame):
+    global window
+    window.closeEvent(None)
+    logging.info('FSTK shut down.')
+    sys.exit(0)
+
+
 # https://colorhunt.co/palette/117601
 # QWidget
 main_widget = MainWidget()
 # QMainWindow using QWidget as central widget
 window = MainWindow(main_widget)
 
+# handler per gestire il segnale SIGTERM, inviato se l'utente usa `kill` oppure spegne il pc senza spegnere l'fstk
+signal.signal(signal.SIGTERM, exit_handler)
+
 # Execute application
 ris = app.exec_()
+
 logging.info('FSTK shut down.')
 sys.exit(ris)
