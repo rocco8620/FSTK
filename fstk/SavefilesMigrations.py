@@ -94,6 +94,14 @@ class ConfigMigrations(Migration):
 
         return True, None
 
+    def _migrate_5_6(self, d):
+        d['options']['switch_reminder'] = {
+            'enabled': False,
+            'interval': 60
+        }
+
+        return True, None
+
 
 class TasksMigrations(Migration):
 

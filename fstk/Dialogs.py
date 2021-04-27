@@ -183,7 +183,7 @@ class NewTaskDialog(QDialog):
             self.clear_error(self.name)
 
         if self.ticket_number.text().strip() != '':
-            success, error_msg = Utils.redmine_ticket_number_validator(self.ticket_number.text())
+            success, error_msg = Utils.integer_number_validator(self.ticket_number.text())
             if not success:
                 self.show_error(error_msg, self.ticket_number)
                 return
@@ -286,6 +286,10 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.7.0</b>
+            <ul>
+                <li>New function to periodicaly remind the user to switch tasks</li>
+            </ul><br>
             <b>Release 0.6.0</b>
             <ul>
                 <li>New compatibility mode for boomers to invert the icon and color of play/pause button</li>
@@ -429,6 +433,7 @@ class ConfigurationDialog(QDialog):
         ############################
 
         self.enable_redmine_integration = QCheckBox("Enable redmine integration")
+        self.enable_redmine_integration.setChecked(current_config['redmine']['enabled'])
         self.enable_redmine_integration.stateChanged.connect(self.update_redmine_ctrls_status)
         self.box.addWidget(self.enable_redmine_integration, 0, 0, 1, 2)
 
@@ -441,7 +446,6 @@ class ConfigurationDialog(QDialog):
         self.box.addWidget(self.label_redmine_toobtainkey, 3, 0, 1, 2)
 
         self.redmine_host = QLineEdit(current_config['redmine']['host'])
-
         self.redmine_host.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.redmine_host.setMinimumWidth(400)
         self.box.addWidget(self.redmine_host, 1, 1)
@@ -453,7 +457,6 @@ class ConfigurationDialog(QDialog):
         #self.use_ticket_as_task_name.setChecked(current_config['redmine']['task_name_from_ticket'])
         #self.box.addWidget(self.use_ticket_as_task_name, 4, 0, 1, 2)
 
-        self.enable_redmine_integration.setChecked(current_config['redmine']['enabled'])
         self.update_redmine_ctrls_status(self.enable_redmine_integration.checkState())
 
         ############################
@@ -469,17 +472,41 @@ class ConfigurationDialog(QDialog):
         self.box.addWidget(self.boomer_play_pause_toggle, 7, 0, 1, 2)
 
         ############################
+        ##### Switch reminder ######
+        ############################
+
+        self.box.addWidget(self.get_separator(), 8, 0, 1, 2)
+
+        self.box.addWidget(QLabel('<b>Switch reminder</b>'), 9, 0, 1, 2)
+
+        self.switch_reminder = QCheckBox("Enable periodic reminder to switch fstk task")
+        self.switch_reminder.setChecked(current_config['switch_reminder']['enabled'])
+        self.switch_reminder.stateChanged.connect(self.update_switch_reminder_ctrls_status)
+        self.box.addWidget(self.switch_reminder, 10, 0, 1, 2)
+
+        self.label_remind_every = QLabel('Remind every (minutes):')
+        self.box.addWidget(self.label_remind_every, 11, 0)
+
+        self.redmind_every_min = QLineEdit(str(current_config['switch_reminder']['interval']))
+
+        self.redmind_every_min.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.redmind_every_min.setMaximumWidth(60)
+        self.box.addWidget(self.redmind_every_min, 11, 1)
+
+        self.update_switch_reminder_ctrls_status(self.switch_reminder.checkState())
+
+        ############################
         ######### Generico #########
         ############################
 
         self.error_label = QLabel()
         self.error_label.setStyleSheet('color: #fa7161')
-        self.box.addWidget(self.error_label, 8, 0, 1, 2)
+        self.box.addWidget(self.error_label, 12, 0, 1, 2)
 
         self.ok_button = QPushButton('Save')
         self.ok_button.clicked.connect(self.check_data)
 
-        self.box.addWidget(self.ok_button, 9, 0, 1, 2, alignment=Qt.AlignCenter)
+        self.box.addWidget(self.ok_button, 13, 0, 1, 2, alignment=Qt.AlignCenter)
 
         self.ok_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
@@ -496,11 +523,6 @@ class ConfigurationDialog(QDialog):
 
     def check_data(self):
 
-        # * Opzioni config:
-        #     * Enable redmine integration
-        #     * Redmine host (verifica con regex)
-        #     * Redmine api key (verifica con regex)
-        #     * Usa nome ticket redmine come nome task
         # se è abilitata questa funzione dobbiamo effettuare la validazione dei suoi dati
         if self.enable_redmine_integration.isChecked():
 
@@ -516,6 +538,15 @@ class ConfigurationDialog(QDialog):
             else:
                 self.clear_error(self.redmine_api_key)
 
+        # se è abilitata questa funzione dobbiamo effettuare la validazione dei suoi dati
+        if self.switch_reminder.isChecked():
+            success, message = Utils.integer_number_validator(self.redmind_every_min.text())
+            if not success:
+                self.show_error(message, self.redmind_every_min)
+                return
+            else:
+                self.clear_error(self.redmind_every_min)
+
         self.result = {
            'redmine' : {
                'enabled': self.enable_redmine_integration.isChecked(),
@@ -525,6 +556,10 @@ class ConfigurationDialog(QDialog):
            },
            'boomer_compatibility' : {
                'invert_run_pause_button': self.boomer_play_pause_toggle.isChecked()
+           },
+           'switch_reminder': {
+                'enabled': self.switch_reminder.isChecked(),
+                'interval': int(self.redmind_every_min.text().strip()) if self.switch_reminder.isChecked() else 60
            }
         }
 
@@ -541,6 +576,12 @@ class ConfigurationDialog(QDialog):
         widgets = [self.label_redmine_hosts, self.label_redmine_apikey, self.label_redmine_toobtainkey, self.redmine_host, self.redmine_api_key] #, self.use_ticket_as_task_name]
         for w in widgets:
             w.setEnabled(state == Qt.Checked)
+
+    def update_switch_reminder_ctrls_status(self, state):
+        widgets = [self.label_remind_every, self.redmind_every_min]
+        for w in widgets:
+            w.setEnabled(state == Qt.Checked)
+
 
 
 

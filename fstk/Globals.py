@@ -11,7 +11,7 @@ default_window_style = '''
 
 config = None
 
-config_file_version = 5
+config_file_version = 6
 tasks_file_version = 4
 
 default_config = {
@@ -53,6 +53,10 @@ default_config = {
        },
        'boomer_compatibility' : {
            'invert_run_pause_button': False
+       },
+       'switch_reminder': {
+            'enabled': False,
+            'interval': 60
        }
     },
     'time_running': True,

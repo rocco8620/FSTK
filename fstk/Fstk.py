@@ -209,7 +209,7 @@ class RowElement(QWidget):
     def edit_ticket_number(self):
         dialog = AskForTextDialog(window_title='Set redmine ticket number',
                                   initial_text=self.ticket_number.text().strip('#'), length=250,
-                                  validator=Utils.redmine_ticket_number_validator)
+                                  validator=Utils.integer_number_validator)
 
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
@@ -414,10 +414,10 @@ class MainWidget(QWidget):
         self.setContentsMargins(0, 0, 0, 0)
 
         # prepara il timer per contare il tempo
-        self.task_timer = QTimer()
-        self.task_timer.setTimerType(Qt.PreciseTimer)
-        self.task_timer.timeout.connect(self.count_time)
-        self.task_timer.start(1000)
+        self.tasks_timer = QTimer()
+        self.tasks_timer.setTimerType(Qt.PreciseTimer)
+        self.tasks_timer.timeout.connect(self.count_time)
+        self.tasks_timer.start(1000)
 
     @Slot()
     def create_task(self):
@@ -557,6 +557,13 @@ class MainWindow(QMainWindow):
 
         # mostro la finestra principale
         self.show()
+
+        self.task_switch_timer = QTimer()
+        self.task_switch_timer.setTimerType(Qt.VeryCoarseTimer)
+        self.task_switch_timer.timeout.connect(self.remind_task_switch)
+
+        if Globals.config['options']['switch_reminder']['enabled']:
+            self.task_switch_timer.start(Globals.config['options']['switch_reminder']['interval'] * 60 * 1000) # converto da minuti a millisecondi
 
         # installo lo shortcut per il desktop
         self.install_desktop_shortcut()
@@ -805,6 +812,11 @@ class MainWindow(QMainWindow):
 
         self.set_run_pause(Globals.config['time_running'])
 
+        if Globals.config['options']['switch_reminder']['enabled']:
+            self.task_switch_timer.start(Globals.config['options']['switch_reminder']['interval'] * 60 * 1000) # converto da minuti a millisecondi
+        else:
+            self.task_switch_timer.stop()
+
 
     def refresh_ticket_titles(self):
         Globals.config['stats']['ticket_titles_refreshed'] += 1
@@ -856,6 +868,15 @@ class MainWindow(QMainWindow):
         self.set_run_pause(not self.widget.running)
 
         Globals.config['stats']['time_run_toggled'] += 1
+
+    def remind_task_switch(self):
+        if len(self.widget.task_list.selectedItems()) > 0:
+            selected_task = self.widget.task_list.itemWidget(self.widget.task_list.selectedItems()[0])
+            name = selected_task.name.text()
+            ticket_number = selected_task.ticket_number.text()
+            InformationDialog('Remeber to switch active task', 'Are you still working on task "{}" {}?'.format(name, '(ticket: {})'.format(ticket_number) if ticket_number else ''), max_width=1000).show()
+        else:
+            InformationDialog('Remeber to switch active task', 'Have you started working on a task? (no task is currently selected)', max_width=1000).show()
 
     # @Slot()
     # def toggle_window_stay_on_top(self):

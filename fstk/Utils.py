@@ -25,7 +25,7 @@ def format_time(seconds):
 
 # VALIDATORS
 
-def redmine_ticket_number_validator(text):
+def integer_number_validator(text):
     """
 
     :param text:
@@ -41,7 +41,7 @@ def redmine_ticket_number_validator(text):
         if 0 < n < 1000000:
             return True, None
         else:
-            return False, 'The number must be between 0 and 1000000'
+            return False, 'The number must be between 1 and 1000000'
     except ValueError:
         return False, 'The number is invalid. It must be an integer'
 
