@@ -101,7 +101,7 @@ class RowElement(QWidget):
         self.ticket_number = QPushButtonDoubleClickable(options['ticket_number'])
         self.ticket_number.setStyleSheet('border: 0; background-color: transparent')
         self.ticket_number.singleClicked.connect(self.edit_ticket_number)
-        self.ticket_number.doubleClicked.connect(self.open_ticket_webpage)
+        self.ticket_number.doubleClicked.connect(self.open_ticket_main_webpage)
         self.redmine_elements.addWidget(self.ticket_number, 0, 0)
 
         title = options.get('ticket_title')
@@ -120,8 +120,9 @@ class RowElement(QWidget):
 
         self.box.addLayout(self.redmine_elements, 1, 0)
 
-        self.spent_time = QLabel('00:00:00')
+        self.spent_time = QLabelClickable('00:00:00')
         self.spent_time.setFont(QFont('Mono', 16))
+        self.spent_time.clicked.connect(self.open_ticket_new_time_webpage)
 
         self.box.addWidget(self.spent_time, 0, 1)
         self.box.setColumnStretch(1, 2)
@@ -227,9 +228,28 @@ class RowElement(QWidget):
         self.update_time(-5 * 60)
         Globals.config['stats']['task_time_decreased'] += 1
 
+    @Slot()
+    def open_ticket_new_time_webpage(self):
+        n = self.ticket_number.text().strip('#')
+        if n == '':
+            return
+
+        if not Globals.config['options']['redmine']['enabled']:
+            InformationDialog('Open redmine ticket page in browser',
+                              'If you want to open the redmine ticket page in the browser when double clicking on the task timer enable redmine integration under<br><span style="font-style: italic">Options > Configuration > Enable redmine integration</span>',
+                              min_width=550,
+                              html=True).exec()
+            return
+
+        url = '{}/issues/{}/time_entries/new'.format(Globals.config['options']['redmine']['host'], n)
+
+        try:
+            webbrowser.open(url)
+        except webbrowser.Error as e:
+            logging.error('An error occurred trying to open the redmine web browser page for the url "{}": {}'.format(url, e))
 
     @Slot()
-    def open_ticket_webpage(self):
+    def open_ticket_main_webpage(self):
         n = self.ticket_number.text().strip('#')
         if n == '':
             return

@@ -235,6 +235,7 @@ class HelpDialog(QDialog):
             <ul>
                 <li>To edit the redmine ticket number on an entry, click on it.</li>
                 <li>To open the redmine webpage of a ticket, double click on the ticket number.</li>
+                <li>To open the redmine webpage to add a time entry to a ticket, click on the task time counter.</li>
                 <li>To reorder the tasks in the list, drag & drop them.</li>
                 <li>To assign a color to a task right click on it.</li>
                 <li>To obtain the redmine api key, visit the page <b>/my/account</b> on your redmine installation. Use the menu on the right to generate/see it.</li>
@@ -293,6 +294,7 @@ class ChangelogDialog(QDialog):
             <b>Release 0.7.0</b>
             <ul>
                 <li>Double clicking on the ticket number now opens the relative redmine webpage</li>
+                <li>Double clicking on the task time counter now opens the relative redmine webpage to add a new time entry</li>
                 <li>New function to periodicaly remind the user to switch tasks</li>
             </ul><br>
             <b>Release 0.6.0</b>
