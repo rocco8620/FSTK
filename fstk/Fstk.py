@@ -4,6 +4,7 @@ import os
 import sys
 
 import requests
+import webbrowser
 from PySide2 import QtGui
 from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QThread
 from PySide2.QtGui import QFont, QDrag, QPixmap, QPainter, QCursor
@@ -38,6 +39,27 @@ class QPushButtonHoverable(QPushButton):
 
     def leaveEvent(self, ev):
         self.mouse_leaved.emit()
+
+class QPushButtonDoubleClickable(QPushButton):
+    doubleClicked = Signal()
+    singleClicked = Signal()
+
+    def __init__(self, *args, **kwargs):
+        QPushButton.__init__(self, *args, **kwargs)
+        self.timer = QTimer()
+        self.timer.setTimerType(Qt.PreciseTimer)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.singleClicked.emit)
+        super().clicked.connect(self.checkDoubleClick)
+
+    @Slot()
+    def checkDoubleClick(self):
+        if self.timer.isActive():
+            self.timer.stop()
+            self.doubleClicked.emit()
+
+        else:
+            self.timer.start(250)
 
 class RowElement(QWidget):
     __seconds = 0
@@ -76,9 +98,10 @@ class RowElement(QWidget):
 
         self.redmine_elements = QGridLayout()
 
-        self.ticket_number = QPushButton(options['ticket_number'])
+        self.ticket_number = QPushButtonDoubleClickable(options['ticket_number'])
         self.ticket_number.setStyleSheet('border: 0; background-color: transparent')
-        self.ticket_number.clicked.connect(self.edit_ticket_number)
+        self.ticket_number.singleClicked.connect(self.edit_ticket_number)
+        self.ticket_number.doubleClicked.connect(self.open_ticket_webpage)
         self.redmine_elements.addWidget(self.ticket_number, 0, 0)
 
         title = options.get('ticket_title')
@@ -203,6 +226,27 @@ class RowElement(QWidget):
     def sub_time_f(self):
         self.update_time(-5 * 60)
         Globals.config['stats']['task_time_decreased'] += 1
+
+
+    @Slot()
+    def open_ticket_webpage(self):
+        n = self.ticket_number.text().strip('#')
+        if n == '':
+            return
+
+        if not Globals.config['options']['redmine']['enabled']:
+            InformationDialog('Open redmine ticket page in browser',
+                              'If you want to open the redmine ticket page in the browser when double clicking on the ticket number enable redmine integration under<br><span style="font-style: italic">Options > Configuration > Enable redmine integration</span>',
+                              min_width=550,
+                              html=True).exec()
+            return
+
+        url = '{}/issues/{}'.format(Globals.config['options']['redmine']['host'], n)
+
+        try:
+            webbrowser.open(url)
+        except webbrowser.Error as e:
+            logging.error('An error occurred trying to open the redmine web browser page for the url "{}": {}'.format(url, e))
 
 
     @Slot()

@@ -98,7 +98,7 @@ class ConfirmDialog(QDialog):
 
 class InformationDialog(QDialog):
 
-    def __init__(self, window_title, text, html=False, max_width=700):
+    def __init__(self, window_title, text, html=False, min_width=None, max_width=700):
         QDialog.__init__(self)
 
         self.setWindowTitle(window_title)
@@ -117,6 +117,9 @@ class InformationDialog(QDialog):
 
         self.text = QLabel(text)
         self.text.setMaximumWidth(max_width)
+        if min_width is not None:
+            self.text.setMinimumWidth(min_width)
+
         self.text.setWordWrap(True)
         if html:
             self.text.setTextFormat(Qt.RichText)
@@ -231,6 +234,7 @@ class HelpDialog(QDialog):
             <b>Tips</b>
             <ul>
                 <li>To edit the redmine ticket number on an entry, click on it.</li>
+                <li>To open the redmine webpage of a ticket, double click on the ticket number.</li>
                 <li>To reorder the tasks in the list, drag & drop them.</li>
                 <li>To assign a color to a task right click on it.</li>
                 <li>To obtain the redmine api key, visit the page <b>/my/account</b> on your redmine installation. Use the menu on the right to generate/see it.</li>
@@ -288,6 +292,7 @@ class ChangelogDialog(QDialog):
             <br>
             <b>Release 0.7.0</b>
             <ul>
+                <li>Double clicking on the ticket number now opens the relative redmine webpage</li>
                 <li>New function to periodicaly remind the user to switch tasks</li>
             </ul><br>
             <b>Release 0.6.0</b>
@@ -384,7 +389,7 @@ class StatisticsDialog(QDialog):
             <ul>
                 {}
             </ul>
-        '''.format(''.join([ '<li>{}: <b>{}<b></li>'.format(k.replace('_', ' ').capitalize(), v) for k, v in  Globals.config['stats'].items() ]) )
+        '''.format(''.join([ '<li>{}: <b>{}<b></li>'.format(k.replace('_', ' ').capitalize(), v) for k, v in Globals.config['stats'].items() ]) )
 
         # QWidget Layout
         self.box = QGridLayout()
