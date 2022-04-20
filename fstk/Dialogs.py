@@ -293,9 +293,10 @@ class ChangelogDialog(QDialog):
             <br>
             <b>Release 0.8.0</b>
             <ul>
-                <li>Modified task switch reminder to trigger only if the user did not swith task in the last interval</li>
+                <li>New option to copy in the clipboard the task time (in redmine entry format) when clicking on the task time counter</li>
+                <li>Modified task switch reminder to trigger only if the user did not switch task in the last interval</li>
                 <li>The local telemetry now shows if the play/pause inversion mode is enabled</li>
-                <li>Fix bug not stripping tabs from ticket number</li>
+                <li>Fix bug not stripping tabs from ticket number when editing task</li>
             </ul><br>
             <b>Release 0.7.0</b>
             <ul>
@@ -473,9 +474,22 @@ class ConfigurationDialog(QDialog):
         self.redmine_api_key = QLineEdit(current_config['redmine']['apikey'])
         self.box.addWidget(self.redmine_api_key, 2, 1)
 
-        #self.use_ticket_as_task_name = QCheckBox("Use redmine ticket name as task name")
-        #self.use_ticket_as_task_name.setChecked(current_config['redmine']['task_name_from_ticket'])
-        #self.box.addWidget(self.use_ticket_as_task_name, 4, 0, 1, 2)
+
+        self.copy_time_to_clipboard = QCheckBox("Copy to clipboard task time when opening page for new time entry")
+        self.copy_time_to_clipboard.setChecked(current_config['redmine']['copy_time_to_clipboard']['enabled'])
+        self.copy_time_to_clipboard.stateChanged.connect(self.update_copy_time_clipboard_ctrls_status)
+        self.box.addWidget(self.copy_time_to_clipboard, 4, 0, 1, 2)
+
+        self.label_roundtimeupto = QLabel('Round time up to (minutes):')
+        self.box.addWidget(self.label_roundtimeupto, 5, 0)
+
+        self.round_to_min = QLineEdit(str(current_config['redmine']['copy_time_to_clipboard']['rounding']))
+
+        self.round_to_min.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.round_to_min.setMaximumWidth(60)
+        self.box.addWidget(self.round_to_min, 5, 1)
+
+        self.update_copy_time_clipboard_ctrls_status(self.copy_time_to_clipboard.checkState())
 
         self.update_redmine_ctrls_status(self.enable_redmine_integration.checkState())
 
@@ -483,35 +497,35 @@ class ConfigurationDialog(QDialog):
         ### Boomer compatibility ###
         ############################
 
-        self.box.addWidget(self.get_separator(), 5, 0, 1, 2)
+        self.box.addWidget(self.get_separator(), 6, 0, 1, 2)
 
-        self.box.addWidget(QLabel('<b>Boomer compatibility mode</b>'), 6, 0, 1, 2)
+        self.box.addWidget(QLabel('<b>Boomer compatibility mode</b>'), 7, 0, 1, 2)
 
         self.boomer_play_pause_toggle = QCheckBox("Invert play/pause button color and icon to conform to old stile")
         self.boomer_play_pause_toggle.setChecked(current_config['boomer_compatibility']['invert_run_pause_button'])
-        self.box.addWidget(self.boomer_play_pause_toggle, 7, 0, 1, 2)
+        self.box.addWidget(self.boomer_play_pause_toggle, 8, 0, 1, 2)
 
         ############################
         ##### Switch reminder ######
         ############################
 
-        self.box.addWidget(self.get_separator(), 8, 0, 1, 2)
+        self.box.addWidget(self.get_separator(), 9, 0, 1, 2)
 
-        self.box.addWidget(QLabel('<b>Switch reminder</b>'), 9, 0, 1, 2)
+        self.box.addWidget(QLabel('<b>Switch reminder</b>'), 10, 0, 1, 2)
 
         self.switch_reminder = QCheckBox("Enable periodic reminder to switch fstk task")
         self.switch_reminder.setChecked(current_config['switch_reminder']['enabled'])
         self.switch_reminder.stateChanged.connect(self.update_switch_reminder_ctrls_status)
-        self.box.addWidget(self.switch_reminder, 10, 0, 1, 2)
+        self.box.addWidget(self.switch_reminder, 11, 0, 1, 2)
 
         self.label_remind_every = QLabel('Remind every (minutes):')
-        self.box.addWidget(self.label_remind_every, 11, 0)
+        self.box.addWidget(self.label_remind_every, 12, 0)
 
         self.redmind_every_min = QLineEdit(str(current_config['switch_reminder']['interval']))
 
         self.redmind_every_min.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.redmind_every_min.setMaximumWidth(60)
-        self.box.addWidget(self.redmind_every_min, 11, 1)
+        self.box.addWidget(self.redmind_every_min, 12, 1)
 
         self.update_switch_reminder_ctrls_status(self.switch_reminder.checkState())
 
@@ -521,12 +535,12 @@ class ConfigurationDialog(QDialog):
 
         self.error_label = QLabel()
         self.error_label.setStyleSheet('color: #fa7161')
-        self.box.addWidget(self.error_label, 12, 0, 1, 2)
+        self.box.addWidget(self.error_label, 14, 0, 1, 2)
 
         self.ok_button = QPushButton('Save')
         self.ok_button.clicked.connect(self.check_data)
 
-        self.box.addWidget(self.ok_button, 13, 0, 1, 2, alignment=Qt.AlignCenter)
+        self.box.addWidget(self.ok_button, 15, 0, 1, 2, alignment=Qt.AlignCenter)
 
         self.ok_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
@@ -558,9 +572,18 @@ class ConfigurationDialog(QDialog):
             else:
                 self.clear_error(self.redmine_api_key)
 
+            # se è abilitata questa funzione dobbiamo effettuare la validazione dei suoi dati
+            if self.copy_time_to_clipboard.isChecked():
+                success, message = Utils.integer_number_validator(self.round_to_min.text().strip())
+                if not success:
+                    self.show_error(message, self.round_to_min)
+                    return
+                else:
+                    self.clear_error(self.round_to_min)
+
         # se è abilitata questa funzione dobbiamo effettuare la validazione dei suoi dati
         if self.switch_reminder.isChecked():
-            success, message = Utils.integer_number_validator(self.redmind_every_min.text())
+            success, message = Utils.integer_number_validator(self.redmind_every_min.text().strip())
             if not success:
                 self.show_error(message, self.redmind_every_min)
                 return
@@ -572,7 +595,11 @@ class ConfigurationDialog(QDialog):
                'enabled': self.enable_redmine_integration.isChecked(),
                'host': self.redmine_host.text().strip(' \r\n\t/'),
                'apikey': self.redmine_api_key.text().strip(),
-               'task_name_from_ticket': False, #self.use_ticket_as_task_name.isChecked()
+               'task_name_from_ticket': False,
+               'copy_time_to_clipboard': {
+                   'enabled': self.copy_time_to_clipboard.isChecked() if self.copy_time_to_clipboard.isChecked() else 10,
+                   'rounding': int(self.round_to_min.text().strip())
+               }
            },
            'boomer_compatibility' : {
                'invert_run_pause_button': self.boomer_play_pause_toggle.isChecked()
@@ -593,7 +620,10 @@ class ConfigurationDialog(QDialog):
         widget.setStyleSheet('')
 
     def update_redmine_ctrls_status(self, state):
-        widgets = [self.label_redmine_hosts, self.label_redmine_apikey, self.label_redmine_toobtainkey, self.redmine_host, self.redmine_api_key] #, self.use_ticket_as_task_name]
+        widgets = [
+            self.label_redmine_hosts, self.label_redmine_apikey, self.label_redmine_toobtainkey, self.redmine_host, self.redmine_api_key,
+            self.copy_time_to_clipboard, self.label_roundtimeupto, self.round_to_min
+        ]
         for w in widgets:
             w.setEnabled(state == Qt.Checked)
 
@@ -601,6 +631,13 @@ class ConfigurationDialog(QDialog):
         widgets = [self.label_remind_every, self.redmind_every_min]
         for w in widgets:
             w.setEnabled(state == Qt.Checked)
+
+    def update_copy_time_clipboard_ctrls_status(self, state):
+        widgets = [self.label_roundtimeupto, self.round_to_min]
+        for w in widgets:
+            w.setEnabled(state == Qt.Checked)
+
+
 
 
 

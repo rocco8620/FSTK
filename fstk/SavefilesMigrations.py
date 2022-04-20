@@ -102,6 +102,14 @@ class ConfigMigrations(Migration):
 
         return True, None
 
+    def _migrate_6_7(selfself, d):
+        d['options']['redmine']['copy_time_to_clipboard'] = {
+            'enabled': False,
+            'rounding': 10
+        }
+
+        return True, None
+
 
 class TasksMigrations(Migration):
 

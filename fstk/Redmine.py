@@ -73,6 +73,23 @@ def get_tickets_title(numbers):
     #              "created_on": "2021-03-26T09:29:13Z", "updated_on": "2021-03-26T09:32:10Z"}], "total_count": 2,
     #  "offset": 0, "limit": 25}
 
-def are_redmine_creds_valid():
+def are_creds_valid():
     succes, _ = request('GET', '/issues.json', params={'limit': 1})
     return succes
+
+def seconds_to_time_entry_format(seconds, rounding):
+    # se il rounding è necessario
+    if seconds % rounding != 0:
+        # applico il round up al numero di secondi specificato
+        seconds = (seconds // rounding + 1) * rounding
+
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+
+    f = ''
+
+    if hours > 0: f += str(hours) + 'h '
+    if f == '' or minutes > 0: f += str(minutes) + 'm '
+
+    return f.strip()
+

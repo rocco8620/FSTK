@@ -216,8 +216,8 @@ class RowElement(QWidget):
 
             # se l'utente ha abilitato il reminder per switchare task lo resetto, poichè lui ha appena switchato tutto
             if Globals.config['options']['switch_reminder']['enabled']:
-                self.__main_widget.main_window.task_switch_timer.stop()
-                self.__main_widget.main_window.task_switch_timer.start(Globals.config['options']['switch_reminder']['interval'] * 60 * 1000)  # converto da minuti a millisecondi
+                self.__main_widget.__main_window.task_switch_timer.stop()
+                self.__main_widget.__main_window.task_switch_timer.start(Globals.config['options']['switch_reminder']['interval'] * 60 * 1000)  # converto da minuti a millisecondi
 
         else:
             event.accept()
@@ -242,10 +242,17 @@ class RowElement(QWidget):
 
         if not Globals.config['options']['redmine']['enabled']:
             InformationDialog('Open redmine ticket page in browser',
-                              'If you want to open the redmine ticket page in the browser when double clicking on the task timer enable redmine integration under<br><span style="font-style: italic">Options > Configuration > Enable redmine integration</span>',
+                              'If you want to open the redmine ticket page in the browser when double clicking on the task timer enable redmine integration '
+                              'under<br><span style="font-style: italic">Options > Configuration > Enable redmine integration</span>',
                               min_width=550,
                               html=True).exec()
             return
+
+        # se è abilitata la funzionalità di copia del tempo passato nel task
+        if Globals.config['options']['redmine']['copy_time_to_clipboard']['enabled']:
+            formatted_time = Redmine.seconds_to_time_entry_format(seconds=self.get_time(),
+                                                                  rounding=Globals.config['options']['redmine']['copy_time_to_clipboard']['rounding'] * 60)
+            QApplication.clipboard().setText(formatted_time)
 
         url = '{}/issues/{}/time_entries/new'.format(Globals.config['options']['redmine']['host'], n)
 
@@ -450,10 +457,12 @@ class CheckRedmineCredsWorker(QThread):
     finished = Signal(bool)
 
     def run(self):
-           result = Redmine.are_redmine_creds_valid()
+           result = Redmine.are_creds_valid()
            self.finished.emit(result)
 
 class MainWidget(QWidget):
+
+    __main_window = None
 
     def __init__(self):
         QWidget.__init__(self)
@@ -606,7 +615,7 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         self.widget = widget
-        self.widget.main_window = self
+        self.widget.__main_window = self
 
         self.oldPos = self.pos()
 
