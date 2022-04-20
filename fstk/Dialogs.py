@@ -291,10 +291,16 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.8.0</b>
+            <ul>
+                <li>Modified task switch reminder to trigger only if the user did not swith task in the last interval</li>
+                <li>The local telemetry now shows if the play/pause inversion mode is enabled</li>
+                <li>Fix bug not stripping tabs from ticket number</li>
+            </ul><br>
             <b>Release 0.7.0</b>
             <ul>
                 <li>Double clicking on the ticket number now opens the relative redmine webpage</li>
-                <li>Double clicking on the task time counter now opens the relative redmine webpage to add a new time entry</li>
+                <li>Clicking on the task time counter now opens the related redmine webpage to add a new time entry</li>
                 <li>New function to periodicaly remind the user to switch tasks</li>
             </ul><br>
             <b>Release 0.6.0</b>
@@ -386,12 +392,14 @@ class StatisticsDialog(QDialog):
 
         self.setWindowIcon(QtGui.QIcon(Utils.get_local_file_path('icon.png')))
 
+        stats_items = list(Globals.config['stats'].items()) + [ ('invert_run_pause_button', Globals.config['options']['boomer_compatibility']['invert_run_pause_button']) ]
+
         stats_text = '''
             <b>Dev Statistics</b>
             <ul>
                 {}
             </ul>
-        '''.format(''.join([ '<li>{}: <b>{}<b></li>'.format(k.replace('_', ' ').capitalize(), v) for k, v in Globals.config['stats'].items() ]) )
+        '''.format(''.join([ '<li>{}: <b>{}<b></li>'.format(k.replace('_', ' ').capitalize(), v) for k, v in stats_items ]) )
 
         # QWidget Layout
         self.box = QGridLayout()
@@ -404,7 +412,12 @@ class StatisticsDialog(QDialog):
         self.close_button.clicked.connect(lambda: self.accept())
 
         self.clipboard_button = QPushButton('Copy to clipboard')
-        self.clipboard_button.clicked.connect(lambda: QApplication.clipboard().setText(json.dumps(Globals.config['stats'])))
+        clipboard_data = Globals.config['stats'].copy()
+        clipboard_data.update({
+            'invert_run_pause_button': Globals.config['options']['boomer_compatibility']['invert_run_pause_button']
+        })
+        clipboard_data = json.dumps(clipboard_data)
+        self.clipboard_button.clicked.connect(lambda: QApplication.clipboard().setText(clipboard_data))
 
         self.box.addWidget(self.clipboard_button, 1, 0, alignment=Qt.AlignCenter)
         self.box.addWidget(self.close_button, 2, 0, alignment=Qt.AlignCenter)

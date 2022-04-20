@@ -213,6 +213,12 @@ class RowElement(QWidget):
         # ignora i click con il tasto destro per selezionare come attivo un widget
         if event.button() != Qt.RightButton:
             super().mousePressEvent(event)
+
+            # se l'utente ha abilitato il reminder per switchare task lo resetto, poichè lui ha appena switchato tutto
+            if Globals.config['options']['switch_reminder']['enabled']:
+                self.__main_widget.main_window.task_switch_timer.stop()
+                self.__main_widget.main_window.task_switch_timer.start(Globals.config['options']['switch_reminder']['interval'] * 60 * 1000)  # converto da minuti a millisecondi
+
         else:
             event.accept()
 
@@ -278,7 +284,7 @@ class RowElement(QWidget):
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 
-        n = dialog.line.text().strip('# ')
+        n = dialog.line.text().strip('# \t\n')
 
         self.ticket_number.setText('#' + n)
 
