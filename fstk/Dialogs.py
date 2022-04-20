@@ -489,9 +489,10 @@ class ConfigurationDialog(QDialog):
         self.round_to_min.setMaximumWidth(60)
         self.box.addWidget(self.round_to_min, 5, 1)
 
+        self.update_redmine_ctrls_status(self.enable_redmine_integration.checkState())
+
         self.update_copy_time_clipboard_ctrls_status(self.copy_time_to_clipboard.checkState())
 
-        self.update_redmine_ctrls_status(self.enable_redmine_integration.checkState())
 
         ############################
         ### Boomer compatibility ###
@@ -597,7 +598,7 @@ class ConfigurationDialog(QDialog):
                'apikey': self.redmine_api_key.text().strip(),
                'task_name_from_ticket': False,
                'copy_time_to_clipboard': {
-                   'enabled': self.copy_time_to_clipboard.isChecked() if self.copy_time_to_clipboard.isChecked() else 10,
+                   'enabled': self.copy_time_to_clipboard.isChecked(),
                    'rounding': int(self.round_to_min.text().strip())
                }
            },
