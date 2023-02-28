@@ -293,7 +293,8 @@ class ChangelogDialog(QDialog):
             <br>
             <b>Release 0.9.0</b>
             <ul>
-                <li>A yellow border is now shown on ticket numbers which are duplicated between tasks</li>
+                <li>A yellow border is now shown around ticket numbers which are duplicated between tasks</li>
+                <li>A yellow border is now shown around notes icon to warn of the presence of notes</li>
                 <li>New action to clear the time to all existing tasks</li>
                 <li>Trying to delete a task containing notes now shows a different warning</li>
                 <li>Fix redmine time rounding to properly round time/li>

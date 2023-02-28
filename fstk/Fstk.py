@@ -151,7 +151,11 @@ class RowElement(QWidget):
         self.notes.mouse_entered.connect(self.show_notes)
         self.notes.mouse_leaved.connect(self.hide_notes)
         self.notes.clicked.connect(self.edit_notes)
-        self.notes.setStyleSheet('QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }')
+        self.notes.setProperty('full', self.__notes != '')
+        self.notes.setStyleSheet('''
+            QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
+            QPushButton[full=true] { border: 1px solid #fae661;  }
+        ''')
         self.notes.setMaximumWidth(self.get_button_size()[0])
         self.notes.setMinimumWidth(self.get_button_size()[0])
         self.notes.setMinimumHeight(self.get_button_size()[1])
@@ -383,6 +387,8 @@ class RowElement(QWidget):
             return
 
         self.__notes = dialog.text.toPlainText().strip()
+        # marco come piene o vuote le note per mostrare il giusto stato nella UI
+        Utils.set_prop_and_refresh(self.notes, 'full', self.__notes != '')
 
         Globals.config['stats']['task_notes_edited'] += 1
 
