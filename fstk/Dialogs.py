@@ -293,6 +293,7 @@ class ChangelogDialog(QDialog):
             <br>
             <b>Release 0.9.0</b>
             <ul>
+                <li>Shows a yellow border on ticket numbers which are duplicated between tasks</li>
                 <li>Trying to delete a task containing notes now uses a different deletion dialog</li>
             </ul><br>
             <b>Release 0.8.0</b>

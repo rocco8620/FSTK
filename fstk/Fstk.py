@@ -99,7 +99,12 @@ class RowElement(QWidget):
         self.redmine_elements = QGridLayout()
 
         self.ticket_number = QPushButtonDoubleClickable(options['ticket_number'])
-        self.ticket_number.setStyleSheet('border: 0; background-color: transparent')
+        self.ticket_number.setStyleSheet('''
+            QPushButton { background-color: transparent; }
+            QPushButton[duplicated=false] { border: 0; padding: 0px }
+            QPushButton[duplicated=true]  { border: 1px solid #fae661; padding: 2px }
+        ''')
+
         self.ticket_number.singleClicked.connect(self.edit_ticket_number)
         self.ticket_number.doubleClicked.connect(self.open_ticket_main_webpage)
         self.redmine_elements.addWidget(self.ticket_number, 0, 0)
@@ -110,7 +115,11 @@ class RowElement(QWidget):
         self.ticket_title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
         self.ticket_title.setFont(QFont('Mono', 9, italic=True))
         self.ticket_title.setProperty('invalid', title is None)
-        self.ticket_title.setStyleSheet('QLabel[counting=true] { color: #61ccfa; } QLabel[invalid=true] { color: #fa7161; } QLabel[counting=false] { color: #6e6e6e; }')
+        self.ticket_title.setStyleSheet('''
+            QLabel[counting=true] { color: #61ccfa; } 
+            QLabel[counting=false] { color: #6e6e6e; }
+            QLabel[invalid=true] { color: #fa7161; } 
+        ''')
         self.redmine_elements.addWidget(self.ticket_title, 0, 1)
         self.redmine_elements.setColumnStretch(1, 7)
 
@@ -298,6 +307,9 @@ class RowElement(QWidget):
         if n == '':
             self.ticket_title.setText('')
         else:
+            # aggiorno lo stato dei marker che indicano i task con numero ticket duplicato
+            self.__main_widget.update_duplicated_tickets_marker()
+
             if Globals.config['options']['redmine']['enabled']:
                 self.__main_widget.update_ticket_title(self.ticket_title, n)
 
@@ -332,6 +344,8 @@ class RowElement(QWidget):
         self.__list.takeItem(self.__list.row(self.__list_item))
 
         self.__main_widget.update_total_time()
+        # aggiorno lo stato dei marker che indicano i task con numero ticket duplicato
+        self.__main_widget.update_duplicated_tickets_marker()
 
         Globals.config['stats']['task_deleted'] += 1
 
@@ -515,6 +529,9 @@ class MainWidget(QWidget):
         Globals.config['stats']['task_created'] += 1
 
         if ticket_number != '':
+            # aggiorno lo stato dei marker che indicano i task con numero ticket duplicato
+            self.update_duplicated_tickets_marker()
+
             # se abilitato redmine lancio un thread per ottenere il titolo del ticket
             if Globals.config['options']['redmine']['enabled'] :
                 self.update_ticket_title(row.ticket_title, ticket_number)
@@ -574,6 +591,29 @@ class MainWidget(QWidget):
             total += self.task_list.itemWidget(self.task_list.item(i)).get_time()
 
         self.total_time.setText('Total time: {}'.format(Utils.format_time(total)))
+
+    def update_duplicated_tickets_marker(self):
+        tickets = {}
+
+        for i in range(self.task_list.count()):
+            widget = self.task_list.itemWidget(self.task_list.item(i))
+            ticket_number = widget.ticket_number.text().strip('#')
+
+            if ticket_number != '':
+                if ticket_number not in tickets:
+                    tickets[ticket_number] = []
+
+                tickets[ticket_number].append(widget)
+
+        for widgets in tickets.values():
+            if len(widgets) > 1:
+                # setto il colore di warning
+                for w in widgets:
+                    Utils.set_prop_and_refresh(w.ticket_number, 'duplicated', True)
+            else:
+                # rimuovo il colore di warning
+                Utils.set_prop_and_refresh(widgets[0].ticket_number, 'duplicated', False)
+
 
 
 
@@ -768,6 +808,8 @@ class MainWindow(QMainWindow):
                                             t['notes'])
 
         self.widget.update_total_time()
+        # aggiorno lo stato dei marker che indicano i task con numero ticket duplicato
+        self.widget.update_duplicated_tickets_marker()
 
         # lancio il timer per l'autosalvataggio dei tempi/task ogni minuto
         self.tasks_autosave_timer = QTimer()
