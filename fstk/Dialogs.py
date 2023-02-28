@@ -293,8 +293,9 @@ class ChangelogDialog(QDialog):
             <br>
             <b>Release 0.9.0</b>
             <ul>
-                <li>Shows a yellow border on ticket numbers which are duplicated between tasks</li>
-                <li>Trying to delete a task containing notes now uses a different deletion dialog</li>
+                <li>A yellow border is now shown on ticket numbers which are duplicated between tasks</li>
+                <li>Trying to delete a task containing notes now shows a different warning</li>
+                <li>Fix redmine time rounding to properly round time/li>
             </ul><br>
             <b>Release 0.8.0</b>
             <ul>
@@ -485,7 +486,7 @@ class ConfigurationDialog(QDialog):
         self.copy_time_to_clipboard.stateChanged.connect(self.update_copy_time_clipboard_ctrls_status)
         self.box.addWidget(self.copy_time_to_clipboard, 4, 0, 1, 2)
 
-        self.label_roundtimeupto = QLabel('Round time up to (minutes):')
+        self.label_roundtimeupto = QLabel('Round time to (minutes):')
         self.box.addWidget(self.label_roundtimeupto, 5, 0)
 
         self.round_to_min = QLineEdit(str(current_config['redmine']['copy_time_to_clipboard']['rounding']))
