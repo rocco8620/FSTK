@@ -735,6 +735,9 @@ class MainWindow(QMainWindow):
 
         self.refresh_titles_action.setEnabled(Globals.config['options']['redmine']['enabled'])
 
+        self.clear_all_tasks_times_action = actions_menu.addAction("Clear all tasks times")
+        self.clear_all_tasks_times_action.triggered.connect(self.clear_all_tasks_times)
+
         statistics_menu = menu_bar.addMenu("Statistics")
         usage_action = statistics_menu.addAction("Dev statistics")
         usage_action.triggered.connect(lambda: StatisticsDialog().exec())
@@ -973,11 +976,17 @@ class MainWindow(QMainWindow):
 
         Utils.launch_thread(UpdateTicketTitleWorker, [tickets], [('finished', func)])
 
+    def clear_all_tasks_times(self):
+        for i in range(self.widget.task_list.count()):
+            w = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
+            w.set_time(0)
+
+
     def clear_ticket_titles(self):
         for i in range(self.widget.task_list.count()):
-            t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
-            t.ticket_title.setText('')
-            t.ticket_title.setProperty('invalid', False)
+            w = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
+            w.ticket_title.setText('')
+            w.ticket_title.setProperty('invalid', False)
 
     def set_run_pause(self, state):
         self.widget.running = state
