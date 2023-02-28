@@ -291,13 +291,17 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.9.1</b>
+            <ul>
+                <li>Fix a small bug where a border was shown around ticket number placeholder of tasks without a ticket number set</li>
+            </ul><br>
             <b>Release 0.9.0</b>
             <ul>
                 <li>A yellow border is now shown around ticket numbers which are duplicated between tasks</li>
                 <li>A yellow border is now shown around notes icon to warn of the presence of notes</li>
                 <li>New action to clear the time to all existing tasks</li>
                 <li>Trying to delete a task containing notes now shows a different warning</li>
-                <li>Fix redmine time rounding to properly round time/li>
+                <li>Fix redmine time rounding to properly round time</li>
             </ul><br>
             <b>Release 0.8.0</b>
             <ul>

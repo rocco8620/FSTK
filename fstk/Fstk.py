@@ -100,8 +100,7 @@ class RowElement(QWidget):
 
         self.ticket_number = QPushButtonDoubleClickable(options['ticket_number'])
         self.ticket_number.setStyleSheet('''
-            QPushButton { background-color: transparent; }
-            QPushButton[duplicated=false] { border: 0; padding: 0px }
+            QPushButton { background-color: transparent; border: 0; padding: 0px }
             QPushButton[duplicated=true]  { border: 1px solid #fae661; padding: 2px }
         ''')
 
