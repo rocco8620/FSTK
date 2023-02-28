@@ -73,10 +73,10 @@ class RowElement(QWidget):
     __notes = ''
 
 
-    def __init__(self, options, main_widget, list, list_item):
+    def __init__(self, options, main_widget, list_, list_item):
         super().__init__()
         self.__main_widget = main_widget
-        self.__list = list
+        self.__list = list_
         self.__list_item = list_item
 
         # inizializzato in un metodo sotto
@@ -319,9 +319,13 @@ class RowElement(QWidget):
 
     @Slot()
     def del_task(self):
-        dialog = ConfirmDialog(window_title='Confirm task deletion',
-        #                       text='The time has not been reported yet, are you sure?')
-                               text='The task will be deleted, are you sure?')
+        if self.__notes == '':
+            text = 'The task will be deleted, are you sure?'
+        else:
+            text = 'The task will be deleted, are you sure?\n--- THE TASK CONTAINS NOTES ---'
+
+        dialog = ConfirmDialog(window_title='Confirm task deletion', text=text)
+
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 

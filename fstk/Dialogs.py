@@ -291,6 +291,10 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.9.0</b>
+            <ul>
+                <li>Trying to delete a task containing notes now uses a different deletion dialog</li>
+            </ul><br>
             <b>Release 0.8.0</b>
             <ul>
                 <li>New option to copy in the clipboard the task time (in redmine entry format) when clicking on the task time counter</li>
