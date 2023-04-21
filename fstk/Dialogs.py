@@ -291,6 +291,10 @@ class ChangelogDialog(QDialog):
         changelog_text = '''
             Current FSTK version: <b>{}</b><br>
             <br>
+            <b>Release 0.9.2</b>
+            <ul>
+                <li>Fix update code to report errors during self-update</li>
+            </ul><br>
             <b>Release 0.9.1</b>
             <ul>
                 <li>Fix a small bug where a border was shown around ticket number placeholder of tasks without a ticket number set</li>

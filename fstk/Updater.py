@@ -4,9 +4,9 @@ import subprocess
 import sys
 
 
-def install_package(package_name):
+def install_package(package_name, version):
     logging.debug('Spawning pip to install update...')
-    proc_handle = subprocess.Popen([sys.executable, "-m", "pip", "install", "--upgrade", package_name], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc_handle = subprocess.Popen([sys.executable, "-m", "pip", "install", f'{package_name}=={version}'], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     # leggo lo standard output del processo, tenendo conto del timeout
     try:
@@ -21,11 +21,11 @@ def install_package(package_name):
 
     if proc_handle.returncode == 0:
         logging.info('Pip update install completed successfully')
-        logging.debug('Pip update install output: "{}"'.format(stdout))
+        logging.debug(f'Pip update install output: "{stdout}"')
         return True, None
     else:
         logging.error('An error occurred trying to install package update: pip exited with code {} and output: "{}"'.format(proc_handle.returncode, stdout))
-        return False, 'Unknow error, see standard output'
+        return False, f'Unknow error occurred, pip returned: {stdout.decode("utf8")}'
 
 
 def restart():

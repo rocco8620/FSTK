@@ -847,7 +847,7 @@ class MainWindow(QMainWindow):
                                            html=True)
 
                     if dialog.exec():  # se l'utente ha cliccato su aggiorna lanciamo l'aggiornamento
-                        success_install, message_install = Updater.install_package(Globals.package_name)
+                        success_install, message_install = Updater.install_package(Globals.package_name, new_version)
 
                         if success_install:
                             InformationDialog('Software update', 'Update completed! FSTK will now restart').exec()
@@ -858,10 +858,11 @@ class MainWindow(QMainWindow):
                             # riavvio il processo
                             Updater.restart()
                         else:
-                            InformationDialog('Software update', 'Update failed: {}'.format(message_install)).exec()
+                            message_install = message_install.replace("\n", "<br>")
+                            InformationDialog('Software update', f'Update failed: {message_install}').exec()
                 else:
                     if show_errors:
-                        InformationDialog('Software update', 'You are running the latest version (<b>v{}</b>)'.format(Globals.version.strip())).exec()
+                        InformationDialog('Software update', f'You are running the latest version (<b>v{Globals.version.strip()}</b>)').exec()
 
             else:
                 if show_errors:
