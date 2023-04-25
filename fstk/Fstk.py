@@ -5,7 +5,7 @@ import sys
 
 import requests
 import webbrowser
-from PySide2 import QtGui
+from PySide2 import QtGui, QtCore
 from PySide2.QtCore import Qt, Slot, QPoint, QEvent, QTimer, Signal, QThread
 from PySide2.QtGui import QFont, QDrag, QPixmap, QPainter, QCursor
 from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QWidget,
@@ -61,27 +61,28 @@ class QPushButtonDoubleClickable(QPushButton):
         else:
             self.timer.start(250)
 
-class RowElement(QWidget):
-    __seconds = 0
-    __color_group = 'No color'
+class TaskElement(QWidget):
+    _seconds = 0
+    _color_group = 'No color'
 
-    __saved = False
-    __main_widget = None
-    __list = None
-    __list_item = None
+    _saved = False
+    _main_widget = None
+    _list = None
+    _list_item = None
 
-    __notes = ''
+    _notes = ''
 
+    type = 'task'
 
     def __init__(self, options, main_widget, list_, list_item):
         super().__init__()
-        self.__main_widget = main_widget
-        self.__list = list_
-        self.__list_item = list_item
+        self._main_widget = main_widget
+        self._list = list_
+        self._list_item = list_item
 
         # inizializzato in un metodo sotto
-        self.__notes_dialog = None
-        self.__notes = options.get('notes', '')
+        self._notes_dialog = None
+        self._notes = options.get('notes', '')
 
         fa5 = QFont('Font Awesome 5 Pro')
 
@@ -150,7 +151,7 @@ class RowElement(QWidget):
         self.notes.mouse_entered.connect(self.show_notes)
         self.notes.mouse_leaved.connect(self.hide_notes)
         self.notes.clicked.connect(self.edit_notes)
-        self.notes.setProperty('full', self.__notes != '')
+        self.notes.setProperty('full', self._notes != '')
         self.notes.setStyleSheet('''
             QPushButton { padding-top: 1; padding-bottom: 1; padding-left: 4; padding-right: 4; }
             QPushButton[full=true] { border: 1px solid #fae661;  }
@@ -203,8 +204,8 @@ class RowElement(QWidget):
         # imposta flag per i visualizzare correttamente i gruppi colore
         self.setAutoFillBackground(True)
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setStyleSheet('RowElement { border: solid ' + Palette.group_colors[options['color_group']] + '; border-width: 0px 0px 0px 5px; }')
-        self.__color_group = options['color_group']
+        self.setStyleSheet('TaskElement { border: solid ' + Palette.group_colors[options['color_group']] + '; border-width: 0px 0px 0px 5px; }')
+        self._color_group = options['color_group']
 
     def contextMenuEvent(self, event):
         contex_menu = QMenu(self)
@@ -217,8 +218,8 @@ class RowElement(QWidget):
         action = contex_menu.exec_(self.mapToGlobal(event.pos()))
 
         if action is not None:
-            self.setStyleSheet('RowElement { border: solid ' + ris[action][1] + '; border-width: 0px 0px 0px 5px; }')
-            self.__color_group = ris[action][0]
+            self.setStyleSheet('TaskElement { border: solid ' + ris[action][1] + '; border-width: 0px 0px 0px 5px; }')
+            self._color_group = ris[action][0]
             Globals.config['stats']['task_color_set'] += 1
 
     def mousePressEvent(self, event):
@@ -228,8 +229,8 @@ class RowElement(QWidget):
 
             # se l'utente ha abilitato il reminder per switchare task lo resetto, poichè lui ha appena switchato tutto
             if Globals.config['options']['switch_reminder']['enabled']:
-                self.__main_widget.__main_window.task_switch_timer.stop()
-                self.__main_widget.__main_window.task_switch_timer.start(Globals.config['options']['switch_reminder']['interval'] * 60 * 1000)  # converto da minuti a millisecondi
+                self._main_widget._main_window.task_switch_timer.stop()
+                self._main_widget._main_window.task_switch_timer.start(Globals.config['options']['switch_reminder']['interval'] * 60 * 1000)  # converto da minuti a millisecondi
 
         else:
             event.accept()
@@ -311,10 +312,10 @@ class RowElement(QWidget):
             self.ticket_title.setText('')
         else:
             # aggiorno lo stato dei marker che indicano i task con numero ticket duplicato
-            self.__main_widget.update_duplicated_tickets_marker()
+            self._main_widget.update_duplicated_tickets_marker()
 
             if Globals.config['options']['redmine']['enabled']:
-                self.__main_widget.update_ticket_title(self.ticket_title, n)
+                self._main_widget.update_ticket_title(self.ticket_title, n)
 
         Globals.config['stats']['task_ticket_n_edited'] += 1
 
@@ -329,12 +330,12 @@ class RowElement(QWidget):
         t = dialog.line.text().strip()
 
         self.name.setText(t)
-        self.__list_item.setSizeHint(self.minimumSizeHint())
+        self._list_item.setSizeHint(self.minimumSizeHint())
         Globals.config['stats']['task_name_edited'] += 1
 
     @Slot()
     def del_task(self):
-        if self.__notes == '':
+        if self._notes == '':
             text = 'The task will be deleted, are you sure?'
         else:
             text = 'The task will be deleted, are you sure?\n--- THE TASK CONTAINS NOTES ---'
@@ -344,11 +345,11 @@ class RowElement(QWidget):
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 
-        self.__list.takeItem(self.__list.row(self.__list_item))
+        self._list.takeItem(self._list.row(self._list_item))
 
-        self.__main_widget.update_total_time()
+        self._main_widget.update_total_time()
         # aggiorno lo stato dei marker che indicano i task con numero ticket duplicato
-        self.__main_widget.update_duplicated_tickets_marker()
+        self._main_widget.update_duplicated_tickets_marker()
 
         Globals.config['stats']['task_deleted'] += 1
 
@@ -366,28 +367,28 @@ class RowElement(QWidget):
 
     @Slot()
     def show_notes(self, pos):
-        if self.__notes_dialog is None and self.__notes != '':
-            self.__notes_dialog = ShowNotesDialog(pos, self.__notes)
-            self.__notes_dialog.show()
+        if self._notes_dialog is None and self._notes != '':
+            self._notes_dialog = ShowNotesDialog(pos, self._notes)
+            self._notes_dialog.show()
 
             Globals.config['stats']['task_notes_viewed'] += 1
 
     @Slot()
     def hide_notes(self):
-        if self.__notes_dialog is not None:
-            self.__notes_dialog.accept()
-            self.__notes_dialog = None
+        if self._notes_dialog is not None:
+            self._notes_dialog.accept()
+            self._notes_dialog = None
 
     @Slot()
     def edit_notes(self):
-        dialog = EditNotesDialog(self.__notes)
+        dialog = EditNotesDialog(self._notes)
 
         if not dialog.exec():  # se l'utente non ha cliccato su ok non procediamo
             return
 
-        self.__notes = dialog.text.toPlainText().strip()
+        self._notes = dialog.text.toPlainText().strip()
         # marco come piene o vuote le note per mostrare il giusto stato nella UI
-        Utils.set_prop_and_refresh(self.notes, 'full', self.__notes != '')
+        Utils.set_prop_and_refresh(self.notes, 'full', self._notes != '')
 
         Globals.config['stats']['task_notes_edited'] += 1
 
@@ -397,34 +398,34 @@ class RowElement(QWidget):
         self.set_time(self.get_time()+seconds)
 
     def get_time(self):
-        return self.__seconds
+        return self._seconds
 
     def set_time(self, seconds):
-        old_seconds = self.__seconds
-        self.__seconds = seconds
+        old_seconds = self._seconds
+        self._seconds = seconds
 
-        if self.__seconds < 0:
-            self.__seconds = 0
+        if self._seconds < 0:
+            self._seconds = 0
 
-        self.spent_time.setText(Utils.format_time(self.__seconds))
+        self.spent_time.setText(Utils.format_time(self._seconds))
 
         elements = [self.spent_time, self.add_time, self.sub_time, self.del_record, self.clear_record_time, self.ticket_number, self.name, self.ticket_title, self.notes]
         # valuta se è possibile che sia avvenuta un condizione che provocherebbe il cambio di colore degli elementi
         # se non può essere avvenuta skippa il codice di set dello style
-        if (old_seconds == 0 and self.__seconds != 0) or (old_seconds != 0 and self.__seconds == 0) or (old_seconds == self.__seconds == 0):
+        if (old_seconds == 0 and self._seconds != 0) or (old_seconds != 0 and self._seconds == 0) or (old_seconds == self._seconds == 0):
             for x in elements:
-                Utils.set_prop_and_refresh(x, 'counting', self.__seconds != 0)
+                Utils.set_prop_and_refresh(x, 'counting', self._seconds != 0)
 
-        self.__main_widget.update_total_time()
+        self._main_widget.update_total_time()
 
     def to_dict(self):
         return {
             'name': self.name.text(),
             'ticket': self.ticket_number.text().strip('#'),
-            'elapsed_time': self.__seconds,
-            'color_group': self.__color_group,
+            'elapsed_time': self._seconds,
+            'color_group': self._color_group,
             'ticket_title': None if self.ticket_title.property('invalid') else self.ticket_title.text(),
-            'notes': self.__notes
+            'notes': self._notes
         }
 
     # funzione per la formattazione degli elementi grafici
@@ -437,6 +438,7 @@ class RowElement(QWidget):
 
 
 class ListWidget(QListWidget):
+    _pixmap = None
 
     def __init__(self):
         super().__init__()
@@ -446,14 +448,14 @@ class ListWidget(QListWidget):
 
         drag = QDrag(self)
         drag.setMimeData(self.model().mimeData(self.selectedIndexes()))
-        self.__pixmap = QPixmap(self.viewport().visibleRegion().boundingRect().size())
-        self.__pixmap.fill(Qt.transparent)
-        painter = QPainter(self.__pixmap)
+        self._pixmap = QPixmap(self.viewport().visibleRegion().boundingRect().size())
+        self._pixmap.fill(Qt.transparent)
+        painter = QPainter(self._pixmap)
 
         for i in self.selectedIndexes():
             painter.drawPixmap(self.visualRect(i), self.viewport().grab(self.visualRect(i)))
 
-        drag.setPixmap(self.__pixmap)
+        drag.setPixmap(self._pixmap)
         drag.setHotSpot(self.viewport().mapFromGlobal(QCursor.pos()))
         drag.exec_(supported_actions, Qt.MoveAction)
 
@@ -485,7 +487,7 @@ class CheckRedmineCredsWorker(QThread):
 
 class MainWidget(QWidget):
 
-    __main_window = None
+    _main_window = None
 
     def __init__(self):
         QWidget.__init__(self)
@@ -568,7 +570,7 @@ class MainWidget(QWidget):
         item = QListWidgetItem()
 
         # Instanciate a custom widget
-        row = RowElement({
+        row = TaskElement({
             'name': name,
             'ticket_number': ticket_number,
             'elapsed_time': elapsed_time,
@@ -592,16 +594,15 @@ class MainWidget(QWidget):
 
     def update_total_time(self):
         total = 0
-        for i in range(self.task_list.count()):
-            total += self.task_list.itemWidget(self.task_list.item(i)).get_time()
+        for t in widgets_of_type(list_=self.task_list, type_='task'):
+            total += t.get_time()
 
         self.total_time.setText('Total time: {}'.format(Utils.format_time(total)))
 
     def update_duplicated_tickets_marker(self):
         tickets = {}
 
-        for i in range(self.task_list.count()):
-            widget = self.task_list.itemWidget(self.task_list.item(i))
+        for widget in widgets_of_type(list_=self.task_list, type_='task'):
             ticket_number = widget.ticket_number.text().strip('#')
 
             if ticket_number != '':
@@ -651,6 +652,11 @@ class CheckUpdateWorker(QThread):
         logging.info('Latest available version: {}'.format(resp['info']['version'].strip()))
         self.finished.emit((True, None, resp['info']['version'].strip()))
 
+def widgets_of_type(list_, type_):
+    for i in range(list_.count()):
+        w = list_.itemWidget(list_.item(i))
+        if w.type == type_:
+            yield w
 
 class MainWindow(QMainWindow):
     # dizionario che contiene le informaizoni riguardo ai tempi tracciati
@@ -664,7 +670,7 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         self.widget = widget
-        self.widget.__main_window = self
+        self.widget._main_window = self
 
         self.oldPos = self.pos()
 
@@ -827,9 +833,10 @@ class MainWindow(QMainWindow):
     def flush_tasks_to_savefile(self):
         logging.info("Autoflushing tasks to file...")
         self.tasks['current_tasks'].clear()
-        for i in range(self.widget.task_list.count()):
-            t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
+        i = 0
+        for t in widgets_of_type(list_=self.widget.task_list, type_='task'):
             self.tasks['current_tasks'][str(i)] = t.to_dict()
+            i += 1
         self.tasks.save()
 
     def search_for_updates(self, show_errors):
@@ -956,8 +963,7 @@ class MainWindow(QMainWindow):
         Globals.config['stats']['ticket_titles_refreshed'] += 1
 
         tickets = []
-        for i in range(self.widget.task_list.count()):
-            t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
+        for t in widgets_of_type(list_=self.widget.task_list, type_='task'):
             # solo se il task ha un ticket number
             if t.ticket_number.text().strip('# ') != '':
                 tickets.append(t.ticket_number.text().strip('# '))
@@ -965,8 +971,7 @@ class MainWindow(QMainWindow):
 
         def func(result):
             if result is not None:
-                for i in range(self.widget.task_list.count()):
-                    t = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
+                for t in widgets_of_type(list_=self.widget.task_list, type_='task'):
                     # solo se il task ha un ticket number
                     if t.ticket_number.text().strip('# ') != '':
                         text = result.get(t.ticket_number.text().strip('# '))
@@ -983,16 +988,14 @@ class MainWindow(QMainWindow):
         Utils.launch_thread(UpdateTicketTitleWorker, [tickets], [('finished', func)])
 
     def clear_all_tasks_times(self):
-        for i in range(self.widget.task_list.count()):
-            w = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
-            w.set_time(0)
+        for t in widgets_of_type(list_=self.widget.task_list, type_='task'):
+            t.set_time(0)
 
 
     def clear_ticket_titles(self):
-        for i in range(self.widget.task_list.count()):
-            w = self.widget.task_list.itemWidget(self.widget.task_list.item(i))
-            w.ticket_title.setText('')
-            w.ticket_title.setProperty('invalid', False)
+        for t in widgets_of_type(list_=self.widget.task_list, type_='task'):
+            t.ticket_title.setText('')
+            t.ticket_title.setProperty('invalid', False)
 
     def set_run_pause(self, state):
         self.widget.running = state

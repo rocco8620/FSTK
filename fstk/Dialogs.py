@@ -14,7 +14,7 @@ class AskForTextDialog(QDialog):
 
     def __init__(self, window_title, length, initial_text, validator=None):
         QDialog.__init__(self)
-        self.__validator = validator
+        self._validator = validator
 
         self.setWindowTitle(window_title)
         self.resize(length, 100)
@@ -45,8 +45,8 @@ class AskForTextDialog(QDialog):
         self.setLayout(self.box)
 
     def ok_handler(self):
-        if self.__validator is not None:
-            success, error_msg = self.__validator(self.line.text())
+        if self._validator is not None:
+            success, error_msg = self._validator(self.line.text())
             if not success:
                 self.line.setStyleSheet('background-color: #fa7161')
                 self.error_label.setText(error_msg)
@@ -294,6 +294,7 @@ class ChangelogDialog(QDialog):
             <b>Release 0.9.2</b>
             <ul>
                 <li>Fix update code to report errors during self-update</li>
+                <li>Internal improvements</li>
             </ul><br>
             <b>Release 0.9.1</b>
             <ul>
